@@ -49,8 +49,8 @@ super + ctrl + r
 super + alt + ctrl + {1-4}
 	waitron group_remove_all_windows {1-4}
 
-super + Return
-	urxvt
+super + d
+	termite
 
 super + {Insert,Prior,Delete,Next,End}
 	waitron window_snap {topleft,topright,bottomleft,bottomright,middle}

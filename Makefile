@@ -5,29 +5,34 @@ NAME_DEFINES = -D__NAME__=\"$(__NAME__)\"                 \
 			   -D__THIS_VERSION__=\"$(__THIS_VERSION__)\" \
 			   -D__CONFIG_NAME__=\"$(__CONFIG_NAME__)\"   \
 
-SRC = list.c wm.c client.c
-OBJ = $(SRC:.c=.o)
+SRC = wm.cpp client.cpp
+OBJ = $(SRC:.cpp=.o)
 BIN = $(__NAME__) $(__NAME_CLIENT__)
-CFLAGS += $(NAME_DEFINES)
+CXXFLAGS += $(NAME_DEFINES)
+CXXFLAGS += -std=c++17 -stdlib=libc++
 
 all: $(BIN)
 
-debug: CFLAGS += -O0 -g -DD
+debug: CXXFLAGS += -O0 -g -DD
 debug: $(__NAME__) $(__NAME_CLIENT__)
 
-$(__NAME__): wm.o list.o
+$(__NAME__): wm.o
 	@echo $@
-	@$(CC) -o $@ $^ $(LDFLAGS)
+	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
 $(__NAME_CLIENT__): client.o
 	@echo $@
-	@$(CC) -o $@ $^ $(LDFLAGS)
+	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
 %.o: %.c
 	@echo $@
 	@$(CC) -o $@ -c $(CFLAGS) $<
 
-$(OBJ): common.h list.h ipc.h types.h config.h
+%.o: %.cpp
+	@echo $@
+	@$(CXX) -x c++ -o $@ -c $(CXXFLAGS) $<
+
+$(OBJ): common.hpp ipc.hpp types.hpp config.hpp
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
