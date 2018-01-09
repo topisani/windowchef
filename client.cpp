@@ -25,6 +25,7 @@ namespace {
   bool fn_naturals(uint32_t*, int, char**);
   bool fn_bool(uint32_t*, int, char**);
   bool fn_config(uint32_t*, int, char**);
+  bool fn_win_config(uint32_t* data, int argc, char** argv);
   bool fn_hex(uint32_t*, int, char**);
   bool fn_position(uint32_t*, int, char**);
   bool fn_gap(uint32_t*, int, char**);
@@ -46,6 +47,13 @@ namespace {
   struct ConfigEntry {
     const char* key;
     enum IPCConfig config;
+    int argc;
+    bool (*handler)(uint32_t*, int, char**);
+  };
+
+  struct WinConfigEntry {
+    const char* key;
+    IPCWinConfig config;
     int argc;
     bool (*handler)(uint32_t*, int, char**);
   };
@@ -78,6 +86,7 @@ namespace {
     {"workspace_set_bar", IPCWorkspaceSetBar, 2, fn_naturals},
     {"wm_quit", IPCWMQuit, 1, fn_naturals},
     {"wm_config", IPCWMConfig, -1, fn_config},
+    {"win_config", IPCWindowConfig, -1, fn_win_config},
   };
 
   ConfigEntry configs[] = {
@@ -100,6 +109,10 @@ namespace {
     {"pointer_modifier", IPCConfigPointerModifier, 1, fn_mod},
     {"click_to_focus", IPCConfigClickToFocus, 1, fn_button},
     {"bar_padding", IPCConfigBarPadding, 4, fn_naturals},
+  };
+
+  WinConfigEntry win_configs[] = {
+    {"allow_offscreen", IPCWinConfig::AllowOffscreen, 1, fn_bool},
   };
 
   /*
@@ -182,7 +195,34 @@ namespace {
 
       if (status == false) errx(EXIT_FAILURE, "malformed input");
     } else {
-      errx(EXIT_FAILURE, "no such config key %s", configs[i].key);
+      errx(EXIT_FAILURE, "no such config key %s", key);
+    }
+    return true;
+  }
+
+  bool fn_win_config(uint32_t* data, int argc, char** argv)
+  {
+    char *key, *value;
+    bool status;
+    int i;
+
+    key   = argv[0];
+    value = argv[1];
+
+    i = 0;
+    while (i < (int)IPCWinConfig::Number && strcmp(key, win_configs[i].key) != 0) i++;
+
+    if (i < (int)IPCWinConfig::Number) {
+      if (win_configs[i].argc != argc - 2)
+        errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
+             win_configs[i].argc + 1);
+      data[0] = (uint32_t) win_configs[i].config;
+      status  = fn_hex(data + 1, argc - 1 , argv + 1);
+      status  = status && (win_configs[i].handler)(data + 2, argc - 2, argv + 2);
+
+      if (status == false) errx(EXIT_FAILURE, "malformed input");
+    } else {
+      errx(EXIT_FAILURE, "no such config key %s", key);
     }
     return true;
   }

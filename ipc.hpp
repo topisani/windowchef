@@ -37,6 +37,7 @@ enum IPCCommand {
   IPCWorkspaceSetBar,
   IPCWMQuit,
   IPCWMConfig,
+  IPCWindowConfig,
   NR_IPC_COMMANDS
 };
 
@@ -60,6 +61,11 @@ enum IPCConfig {
   IPCConfigClickToFocus,
   IPCConfigBarPadding,
   NR_IPC_CONFIGS
+};
+
+enum struct IPCWinConfig {
+  AllowOffscreen,
+  Number
 };
 
 #endif

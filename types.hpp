@@ -89,7 +89,15 @@ struct Client {
   uint16_t width_inc = 1;
   uint16_t height_inc = 1;
   bool mapped;
+  bool should_map = true;
+  bool user_set_map = true;
+  bool user_set_unmap = true;
+  bool allow_offscreen = false;
   uint32_t workspace;
+
+  operator xcb_window_t() const {
+    return window;
+  }
 };
 
 bool operator==(const Client& rhs, const Client& lhs) {
@@ -99,6 +107,24 @@ bool operator==(const Client& rhs, const Client& lhs) {
 bool operator!=(const Client& rhs, const Client& lhs) {
   return rhs.window != lhs.window;
 }
+
+bool operator==(const Client& rhs, xcb_window_t window) {
+  return rhs.window == window;
+}
+
+bool operator==(xcb_window_t window, const Client& lhs) {
+  return window == lhs.window;
+}
+
+bool operator!=(const Client& rhs, xcb_window_t window) {
+  return rhs.window != window;
+}
+
+bool operator!=(xcb_window_t window, const Client& lhs) {
+  return window != lhs.window;
+}
+
+
 
 bool operator==(const Monitor& rhs, const Monitor& lhs) {
   return rhs.monitor == lhs.monitor;
