@@ -88,9 +88,7 @@ namespace {
                    xcb_timestamp_t timestamp);
   Monitor* find_monitor(xcb_randr_output_t mon);
   Monitor* find_monitor_by_coord(int16_t x, int16_t y);
-  Monitor* find_clones(xcb_randr_output_t mon,
-                       int16_t x,
-                       int16_t y);
+  Monitor* find_clones(xcb_randr_output_t mon, int16_t x, int16_t y);
   Monitor& add_monitor(xcb_randr_output_t mon,
                        char* name,
                        int16_t x,
@@ -115,9 +113,7 @@ namespace {
   void delete_window(xcb_window_t win);
   void teleport_window(xcb_window_t win, int16_t x, int16_t y);
   void move_window(xcb_window_t win, int16_t x, int16_t y);
-  void resize_window_absolute(xcb_window_t win,
-                              uint16_t w,
-                              uint16_t h);
+  void resize_window_absolute(xcb_window_t win, uint16_t w, uint16_t h);
   void resize_window(xcb_window_t win, int16_t w, int16_t h);
   void fit_on_screen(Client& client);
   void refresh_maxed(Client& client);
@@ -140,9 +136,7 @@ namespace {
   bool is_in_valid_direction(uint32_t direction,
                              float window_direction,
                              float delta);
-  bool is_in_cardinal_direction(uint32_t direction,
-                                Client& a,
-                                Client& b);
+  bool is_in_cardinal_direction(uint32_t direction, Client& a, Client& b);
   void save_original_size(Client& client);
   xcb_atom_t get_atom(const char* name);
   bool get_pointer_location(xcb_window_t&, int16_t&, int16_t&);
@@ -172,9 +166,7 @@ namespace {
   // void change_nr_of_workspaces(uint32_t);
   void refresh_borders();
   void update_ewmh_wm_state(Client& client);
-  void handle_wm_state(Client& client,
-                       xcb_atom_t state,
-                       unsigned int action);
+  void handle_wm_state(Client& client, xcb_atom_t state, unsigned int action);
 
   void snap_window(Client& client, enum position pos);
   void grid_window(Client& client,
@@ -228,16 +220,12 @@ namespace {
   void pointer_init();
   int16_t pointer_modfield_from_keysym(xcb_keysym_t keysym);
   void window_grab_buttons(xcb_window_t win);
-  void window_grab_button(xcb_window_t win,
-                          uint8_t button,
-                          uint16_t modifier);
+  void window_grab_button(xcb_window_t win, uint8_t button, uint16_t modifier);
   bool pointer_grab(enum pointer_action pac);
   enum resize_handle get_handle(Client& client,
                                 xcb_point_t pos,
                                 enum pointer_action pac);
-  void track_pointer(Client& client,
-                     enum pointer_action pac,
-                     xcb_point_t pos);
+  void track_pointer(Client& client, enum pointer_action pac, xcb_point_t pos);
   void grab_buttons();
   void ungrab_buttons();
 
@@ -2839,8 +2827,7 @@ namespace {
   void ipc_workspace_set_bar(uint32_t* d)
   {
     Workspace& workspace = d[0] == 0 ? *current_ws : workspaces.at(d[0] - 1);
-    workspace.bar_shown =
-      (d[1] > 1 ? !workspace.bar_shown : (d[1] != 0u));
+    workspace.bar_shown  = (d[1] > 1 ? !workspace.bar_shown : (d[1] != 0u));
 
     update_bar_visibility();
     for (auto& win : current_ws->windows) {

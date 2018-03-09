@@ -1,5 +1,6 @@
 /* Copyright (c) 2016, 2017 Tudor Ioan Roman. All rights reserved. */
-/* Licensed under the ISC License. See the LICENSE file in the project root for full license information. */
+/* Licensed under the ISC License. See the LICENSE file in the project root for
+ * full license information. */
 #pragma once
 
 #define BORDER_WIDTH 5
@@ -35,7 +36,8 @@
 /* if true, focus last window when the currently focused window is unmapped */
 #define LAST_WINDOW_FOCUSING true
 
-/* if true, apply settings on windows when they are set (like border color, border width) */
+/* if true, apply settings on windows when they are set (like border color,
+ * border width) */
 #define APPLY_SETTINGS true
 
 /* When clicking a window to focus it, send the click to it too. */

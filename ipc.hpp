@@ -61,7 +61,4 @@ enum IPCConfig {
   NR_IPC_CONFIGS
 };
 
-enum struct IPCWinConfig {
-  AllowOffscreen,
-  Number
-};
+enum struct IPCWinConfig { AllowOffscreen, Number };

@@ -81,7 +81,8 @@ namespace {
     {"window_focus_last", IPCWindowFocusLast, 0, nullptr},
     {"workspace_add_window", IPCWorkspaceAddWindow, 1, fn_naturals},
     {"workspace_remove_window", IPCWorkspaceRemoveWindow, 0, nullptr},
-    {"workspace_remove_all_windows", IPCWorkspaceRemoveAllWindows, 1, fn_naturals},
+    {"workspace_remove_all_windows", IPCWorkspaceRemoveAllWindows, 1,
+     fn_naturals},
     {"workspace_goto", IPCWorkspaceGoto, 1, fn_naturals},
     {"workspace_set_bar", IPCWorkspaceSetBar, 2, fn_naturals},
     {"wm_quit", IPCWMQuit, 1, fn_naturals},
@@ -131,7 +132,7 @@ namespace {
         data[i] = IPC_MUL_PLUS;
       } else {
         data[i] = IPC_MUL_MINUS;
-}
+      }
       data[i + 2] = abs(c);
       i++;
     } while (i < argc && errno == 0);
@@ -140,7 +141,7 @@ namespace {
       return false;
     } else {
       return true;
-}
+    }
   }
 
   bool fn_naturals(uint32_t* data, int argc, char** argv)
@@ -156,7 +157,7 @@ namespace {
       return false;
     } else {
       return true;
-}
+    }
   }
 
   bool fn_bool(uint32_t* data, int argc, char** argv)
@@ -171,7 +172,7 @@ namespace {
         data[i] = 1u;
       } else {
         data[i] = 0u;
-}
+      }
       i++;
     } while (i < argc);
 
@@ -188,19 +189,21 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < NR_IPC_CONFIGS && strcmp(key, configs[i].key) != 0) { i++;
-}
+    while (i < NR_IPC_CONFIGS && strcmp(key, configs[i].key) != 0) {
+      i++;
+    }
 
     if (i < NR_IPC_CONFIGS) {
       if (configs[i].argc != argc - 1) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              configs[i].argc);
-}
+      }
       data[0] = configs[i].config;
       status  = (configs[i].handler)(data + 1, argc - 1, argv + 1);
 
-      if (!status) { errx(EXIT_FAILURE, "malformed input");
-}
+      if (!status) {
+        errx(EXIT_FAILURE, "malformed input");
+      }
     } else {
       errx(EXIT_FAILURE, "no such config key %s", key);
     }
@@ -217,20 +220,23 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < (int)IPCWinConfig::Number && strcmp(key, win_configs[i].key) != 0) { i++;
-}
+    while (i < (int) IPCWinConfig::Number &&
+           strcmp(key, win_configs[i].key) != 0) {
+      i++;
+    }
 
-    if (i < (int)IPCWinConfig::Number) {
+    if (i < (int) IPCWinConfig::Number) {
       if (win_configs[i].argc != argc - 2) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              win_configs[i].argc + 1);
-}
+      }
       data[0] = (uint32_t) win_configs[i].config;
-      status  = fn_hex(data + 1, argc - 1 , argv + 1);
-      status  = status && (win_configs[i].handler)(data + 2, argc - 2, argv + 2);
+      status  = fn_hex(data + 1, argc - 1, argv + 1);
+      status = status && (win_configs[i].handler)(data + 2, argc - 2, argv + 2);
 
-      if (!status) { errx(EXIT_FAILURE, "malformed input");
-}
+      if (!status) {
+        errx(EXIT_FAILURE, "malformed input");
+      }
     } else {
       errx(EXIT_FAILURE, "no such config key %s", key);
     }
@@ -250,7 +256,7 @@ namespace {
       return false;
     } else {
       return true;
-}
+    }
   }
 
   bool fn_direction(uint32_t* data, int argc, char** argv)
@@ -268,7 +274,7 @@ namespace {
       dir_sel = EAST;
     } else {
       return false;
-}
+    }
 
     (void) (argc);
     data[0] = dir_sel;
@@ -292,7 +298,7 @@ namespace {
         data[i] = POINTER_ACTION_RESIZE_SIDE;
       } else {
         return false;
-}
+      }
     }
 
     return true;
@@ -306,7 +312,7 @@ namespace {
       data[0] = XCB_MOD_MASK_4;
     } else {
       return false;
-}
+    }
 
     return true;
   }
@@ -327,7 +333,7 @@ namespace {
       data[0] = 0;
     } else {
       return false;
-}
+    }
 
     return true;
   }
@@ -359,7 +365,7 @@ namespace {
       snap_pos = ALL;
     } else {
       return false;
-}
+    }
 
     (void) (argc);
     data[0] = snap_pos;
@@ -383,7 +389,7 @@ namespace {
     *conn = xcb_connect(nullptr, nullptr);
     if (xcb_connection_has_error(*conn) != 0) {
       errx(EXIT_FAILURE, "unable to connect to X server");
-}
+    }
     scr = xcb_setup_roots_iterator(xcb_get_setup(*conn)).data;
   }
 
@@ -394,8 +400,9 @@ namespace {
     xcb_intern_atom_reply_t* reply =
       xcb_intern_atom_reply(conn, cookie, nullptr);
 
-    if (reply == nullptr) { return XCB_ATOM_STRING;
-}
+    if (reply == nullptr) {
+      return XCB_ATOM_STRING;
+    }
 
     return reply->atom;
   }
@@ -414,19 +421,20 @@ namespace {
     data.data32[0]    = c->command;
     if (c->handler != nullptr) {
       status = (c->handler)(data.data32 + 1, argc, argv);
-}
-    if (!status) { errx(EXIT_FAILURE, "malformed input");
-}
+    }
+    if (!status) {
+      errx(EXIT_FAILURE, "malformed input");
+    }
 
     msg.data = data;
 
-    cookie = xcb_send_event_checked(conn, 0u, scr->root,
-                                    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
-                                    (char*) &msg);
+    cookie = xcb_send_event_checked(
+      conn, 0u, scr->root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT, (char*) &msg);
 
     err = xcb_request_check(conn, cookie);
-    if (err != nullptr) { fprintf(stderr, "oops %d\n", err->error_code);
-}
+    if (err != nullptr) {
+      fprintf(stderr, "oops %d\n", err->error_code);
+    }
     xcb_flush(conn);
   }
 
@@ -460,7 +468,7 @@ int main(int argc, char** argv)
       usage(argv[0], EXIT_SUCCESS);
     } else if (strcmp(argv[1], "-v") == 0) {
       version();
-}
+    }
   }
 
   init_xcb(&conn);
@@ -470,8 +478,9 @@ int main(int argc, char** argv)
   command_argv = argv + 2;
 
   i = 0;
-  while (i < NR_IPC_COMMANDS && strcmp(argv[1], c[i].string_command) != 0) { i++;
-}
+  while (i < NR_IPC_COMMANDS && strcmp(argv[1], c[i].string_command) != 0) {
+    i++;
+  }
 
   if (i < NR_IPC_COMMANDS) {
     if (c[i].argc != -1) {
@@ -479,18 +488,19 @@ int main(int argc, char** argv)
         errx(EXIT_FAILURE, "not enough arguments");
       } else if (command_argc > c[i].argc) {
         warnx("too many arguments");
-}
+      }
     }
     if (c[i].argc == -1 || command_argc == c[i].argc) {
       send_command(&c[i], command_argc, command_argv);
-}
+    }
 
   } else {
     errx(EXIT_FAILURE, "no such command");
   }
 
-  if (conn != nullptr) { xcb_disconnect(conn);
-}
+  if (conn != nullptr) {
+    xcb_disconnect(conn);
+  }
 
   return 0;
 }

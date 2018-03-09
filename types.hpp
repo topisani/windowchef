@@ -95,18 +95,16 @@ struct Client {
     return window;
   }
 
-  static Client make(xcb_window_t window) 
+  static Client make(xcb_window_t window)
   {
     return Client(window);
   }
 
-  Client(Client&) = delete;
+  Client(Client&)  = delete;
   Client(Client&&) = default;
 
 private:
-  Client(xcb_window_t window) 
-    : window(window)
-  {}
+  Client(xcb_window_t window) : window(window) {}
 };
 
 struct Workspace {
@@ -120,7 +118,7 @@ struct Workspace {
   }
 
   Workspace(Workspace&&) = default;
-  Workspace(Workspace&) = delete;
+  Workspace(Workspace&)  = delete;
 
 private:
   Workspace(uint32_t index) : index(index) {}
