@@ -124,54 +124,54 @@ private:
   Workspace(uint32_t index) : index(index) {}
 };
 
-inline inline bool operator==(const Workspace& rhs, const Workspace& lhs)
+inline bool operator==(const Workspace& rhs, const Workspace& lhs)
 {
   return rhs.index == lhs.index;
 }
 
-inline inline bool operator!=(const Workspace& rhs, const Workspace& lhs)
+inline bool operator!=(const Workspace& rhs, const Workspace& lhs)
 {
   return rhs.index != lhs.index;
 }
 
-inline inline bool operator==(const Client& rhs, const Client& lhs)
+inline bool operator==(const Client& rhs, const Client& lhs)
 {
   return rhs.window == lhs.window;
 }
 
-inline inline bool operator!=(const Client& rhs, const Client& lhs)
+inline bool operator!=(const Client& rhs, const Client& lhs)
 {
   return rhs.window != lhs.window;
 }
 
-inline inline bool operator==(const Client& rhs, xcb_window_t window)
+inline bool operator==(const Client& rhs, xcb_window_t window)
 {
   return rhs.window == window;
 }
 
-inline inline bool operator==(xcb_window_t window, const Client& lhs)
+inline bool operator==(xcb_window_t window, const Client& lhs)
 {
   return window == lhs.window;
 }
 
-inline inline bool operator!=(const Client& rhs, xcb_window_t window)
+inline bool operator!=(const Client& rhs, xcb_window_t window)
 {
   return rhs.window != window;
 }
 
-inline inline bool operator!=(xcb_window_t window, const Client& lhs)
+inline bool operator!=(xcb_window_t window, const Client& lhs)
 {
   return window != lhs.window;
 }
 
 
 
-inline inline bool operator==(const Monitor& rhs, const Monitor& lhs)
+inline bool operator==(const Monitor& rhs, const Monitor& lhs)
 {
   return rhs.monitor == lhs.monitor;
 }
 
-inline inline bool operator!=(const Monitor& rhs, const Monitor& lhs)
+inline bool operator!=(const Monitor& rhs, const Monitor& lhs)
 {
   return rhs.monitor != lhs.monitor;
 }
