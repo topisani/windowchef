@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <xcb/randr.h>
+#include "util.hpp"
 
 enum position {
   BOTTOM_LEFT,
@@ -64,11 +65,6 @@ struct WindowGeom {
   bool set_by_user = false;
 };
 
-struct Workspace {
-  uint32_t index;
-  bool bar_shown;
-};
-
 struct Monitor {
   xcb_randr_output_t monitor;
   char* name;
@@ -76,61 +72,113 @@ struct Monitor {
   uint16_t width, height;
 };
 
+struct Workspace;
+
 struct Client {
   xcb_window_t window;
   WindowGeom geom;
   WindowGeom orig_geom;
   bool fullscreen = false;
-  bool hmaxed = false;
-  bool vmaxed = false;
+  bool hmaxed     = false;
+  bool vmaxed     = false;
   Monitor* monitor;
   uint16_t min_width, min_height;
   uint16_t max_width, max_height;
-  uint16_t width_inc = 1;
+  uint16_t width_inc  = 1;
   uint16_t height_inc = 1;
   bool mapped;
-  bool should_map = true;
-  bool user_set_map = true;
-  bool user_set_unmap = true;
+  bool should_map      = true;
+  bool user_set_map    = true;
+  bool user_set_unmap  = true;
   bool allow_offscreen = false;
-  uint32_t workspace;
+  Workspace* workspace;
 
-  operator xcb_window_t() const {
+  operator xcb_window_t() const
+  {
     return window;
   }
+
+  static Client make(xcb_window_t window) 
+  {
+    return Client(window);
+  }
+
+  Client(Client&&) = default;
+
+private:
+  Client(xcb_window_t window) 
+    : window(window)
+  {}
+
+  Client(Client&) = delete;
 };
 
-bool operator==(const Client& rhs, const Client& lhs) {
+struct Workspace {
+  const uint32_t index;
+  bool bar_shown = true;
+  nomove_vector<Client> windows;
+
+  static Workspace make(uint32_t index)
+  {
+    return Workspace(index);
+  }
+
+  Workspace(Workspace&&) = default;
+
+private:
+  Workspace(uint32_t index) : index(index) {}
+  Workspace(Workspace&) = delete;
+};
+
+bool operator==(const Workspace& rhs, const Workspace& lhs)
+{
+  return rhs.index == lhs.index;
+}
+
+bool operator!=(const Workspace& rhs, const Workspace& lhs)
+{
+  return rhs.index != lhs.index;
+}
+
+bool operator==(const Client& rhs, const Client& lhs)
+{
   return rhs.window == lhs.window;
 }
 
-bool operator!=(const Client& rhs, const Client& lhs) {
+bool operator!=(const Client& rhs, const Client& lhs)
+{
   return rhs.window != lhs.window;
 }
 
-bool operator==(const Client& rhs, xcb_window_t window) {
+bool operator==(const Client& rhs, xcb_window_t window)
+{
   return rhs.window == window;
 }
 
-bool operator==(xcb_window_t window, const Client& lhs) {
+bool operator==(xcb_window_t window, const Client& lhs)
+{
   return window == lhs.window;
 }
 
-bool operator!=(const Client& rhs, xcb_window_t window) {
+bool operator!=(const Client& rhs, xcb_window_t window)
+{
   return rhs.window != window;
 }
 
-bool operator!=(xcb_window_t window, const Client& lhs) {
+bool operator!=(xcb_window_t window, const Client& lhs)
+{
   return window != lhs.window;
 }
 
 
 
-bool operator==(const Monitor& rhs, const Monitor& lhs) {
+bool operator==(const Monitor& rhs, const Monitor& lhs)
+{
   return rhs.monitor == lhs.monitor;
 }
 
-bool operator!=(const Monitor& rhs, const Monitor& lhs) {
+bool operator!=(const Monitor& rhs, const Monitor& lhs)
+{
   return rhs.monitor != lhs.monitor;
 }
 
