@@ -1,8 +1,6 @@
 /* Copyright (c) 2016, 2017 Tudor Ioan Roman. All rights reserved. */
 /* Licensed under the ISC License. See the LICENSE file in the project root for full license information. */
-
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#pragma once
 
 #define BORDER_WIDTH 5
 
@@ -62,5 +60,3 @@
 #define BAR_PADDING_TOP 0
 #define BAR_PADDING_RIGHT 0
 #define BAR_PADDING_BOTTOM 0
-
-#endif

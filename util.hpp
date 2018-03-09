@@ -93,7 +93,9 @@ struct nomove_vector {
   }
 
   iterator rotate_to_back(iterator iter) {
-    if (iter != _order.end()) return std::rotate(iter.data(), iter.data() + 1, _order.end());
+    if (iter != _order.end()) { { return std::rotate(iter.data(), iter.data() + 1, _order.end());
+}
+}
     return end();
   }
 

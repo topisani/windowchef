@@ -5,10 +5,10 @@
 #include <xcb/xcb.h>
 
 #include <err.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "common.hpp"
 #include "ipc.hpp"
@@ -21,21 +21,21 @@ int opterr = 0;
 
 namespace {
 
-  bool fn_offset(uint32_t*, int, char**);
-  bool fn_naturals(uint32_t*, int, char**);
-  bool fn_bool(uint32_t*, int, char**);
-  bool fn_config(uint32_t*, int, char**);
+  bool fn_offset(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_naturals(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_bool(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_config(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
   bool fn_win_config(uint32_t* data, int argc, char** argv);
-  bool fn_hex(uint32_t*, int, char**);
-  bool fn_position(uint32_t*, int, char**);
-  bool fn_gap(uint32_t*, int, char**);
-  bool fn_direction(uint32_t*, int, char**);
-  bool fn_pac(uint32_t*, int, char**);
-  bool fn_mod(uint32_t*, int, char**);
-  bool fn_button(uint32_t*, int, char**);
+  bool fn_hex(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_position(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_gap(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_direction(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_pac(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_mod(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+  bool fn_button(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
 
-  void usage(char*, int);
-  void version(void);
+  void usage(char* /*name*/, int /*status*/);
+  void version();
 
   struct Command {
     const char* string_command;
@@ -127,18 +127,20 @@ namespace {
     do {
       errno = 0;
       int c = strtol(argv[i], nullptr, 10);
-      if (c >= 0)
+      if (c >= 0) {
         data[i] = IPC_MUL_PLUS;
-      else
+      } else {
         data[i] = IPC_MUL_MINUS;
+}
       data[i + 2] = abs(c);
       i++;
     } while (i < argc && errno == 0);
 
-    if (errno != 0)
+    if (errno != 0) {
       return false;
-    else
+    } else {
       return true;
+}
   }
 
   bool fn_naturals(uint32_t* data, int argc, char** argv)
@@ -150,10 +152,11 @@ namespace {
       i++;
     } while (i < argc && errno == 0);
 
-    if (errno != 0)
+    if (errno != 0) {
       return false;
-    else
+    } else {
       return true;
+}
   }
 
   bool fn_bool(uint32_t* data, int argc, char** argv)
@@ -164,10 +167,11 @@ namespace {
       arg = argv[i];
       if (strcasecmp(argv[i], "true") == 0 || strcasecmp(arg, "yes") == 0 ||
           strcasecmp(arg, "t") == 0 || strcasecmp(arg, "y") == 0 ||
-          strcasecmp(arg, "1") == 0)
-        data[i] = true;
-      else
-        data[i] = false;
+          strcasecmp(arg, "1") == 0) {
+        data[i] = 1u;
+      } else {
+        data[i] = 0u;
+}
       i++;
     } while (i < argc);
 
@@ -184,16 +188,19 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < NR_IPC_CONFIGS && strcmp(key, configs[i].key) != 0) i++;
+    while (i < NR_IPC_CONFIGS && strcmp(key, configs[i].key) != 0) { i++;
+}
 
     if (i < NR_IPC_CONFIGS) {
-      if (configs[i].argc != argc - 1)
+      if (configs[i].argc != argc - 1) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              configs[i].argc);
+}
       data[0] = configs[i].config;
       status  = (configs[i].handler)(data + 1, argc - 1, argv + 1);
 
-      if (status == false) errx(EXIT_FAILURE, "malformed input");
+      if (!status) { errx(EXIT_FAILURE, "malformed input");
+}
     } else {
       errx(EXIT_FAILURE, "no such config key %s", key);
     }
@@ -210,17 +217,20 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < (int)IPCWinConfig::Number && strcmp(key, win_configs[i].key) != 0) i++;
+    while (i < (int)IPCWinConfig::Number && strcmp(key, win_configs[i].key) != 0) { i++;
+}
 
     if (i < (int)IPCWinConfig::Number) {
-      if (win_configs[i].argc != argc - 2)
+      if (win_configs[i].argc != argc - 2) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              win_configs[i].argc + 1);
+}
       data[0] = (uint32_t) win_configs[i].config;
       status  = fn_hex(data + 1, argc - 1 , argv + 1);
       status  = status && (win_configs[i].handler)(data + 2, argc - 2, argv + 2);
 
-      if (status == false) errx(EXIT_FAILURE, "malformed input");
+      if (!status) { errx(EXIT_FAILURE, "malformed input");
+}
     } else {
       errx(EXIT_FAILURE, "no such config key %s", key);
     }
@@ -236,10 +246,11 @@ namespace {
       i++;
     } while (i < argc && errno == 0);
 
-    if (errno != 0)
+    if (errno != 0) {
       return false;
-    else
+    } else {
       return true;
+}
   }
 
   bool fn_direction(uint32_t* data, int argc, char** argv)
@@ -247,16 +258,17 @@ namespace {
     char* pos = argv[0];
     enum direction dir_sel;
 
-    if (strcasecmp(pos, "up") == 0 || strcasecmp(pos, "north") == 0)
+    if (strcasecmp(pos, "up") == 0 || strcasecmp(pos, "north") == 0) {
       dir_sel = NORTH;
-    else if (strcasecmp(pos, "down") == 0 || strcasecmp(pos, "south") == 0)
+    } else if (strcasecmp(pos, "down") == 0 || strcasecmp(pos, "south") == 0) {
       dir_sel = SOUTH;
-    else if (strcasecmp(pos, "left") == 0 || strcasecmp(pos, "west") == 0)
+    } else if (strcasecmp(pos, "left") == 0 || strcasecmp(pos, "west") == 0) {
       dir_sel = WEST;
-    else if (strcasecmp(pos, "right") == 0 || strcasecmp(pos, "east") == 0)
+    } else if (strcasecmp(pos, "right") == 0 || strcasecmp(pos, "east") == 0) {
       dir_sel = EAST;
-    else
+    } else {
       return false;
+}
 
     (void) (argc);
     data[0] = dir_sel;
@@ -268,18 +280,19 @@ namespace {
   {
     for (int i = 0; i < argc; i++) {
       char* pac = argv[i];
-      if (strcasecmp(pac, "nothing") == 0)
+      if (strcasecmp(pac, "nothing") == 0) {
         data[i] = POINTER_ACTION_NOTHING;
-      else if (strcasecmp(pac, "focus") == 0)
+      } else if (strcasecmp(pac, "focus") == 0) {
         data[i] = POINTER_ACTION_FOCUS;
-      else if (strcasecmp(pac, "move") == 0)
+      } else if (strcasecmp(pac, "move") == 0) {
         data[i] = POINTER_ACTION_MOVE;
-      else if (strcasecmp(pac, "resize_corner") == 0)
+      } else if (strcasecmp(pac, "resize_corner") == 0) {
         data[i] = POINTER_ACTION_RESIZE_CORNER;
-      else if (strcasecmp(pac, "resize_side") == 0)
+      } else if (strcasecmp(pac, "resize_side") == 0) {
         data[i] = POINTER_ACTION_RESIZE_SIDE;
-      else
+      } else {
         return false;
+}
     }
 
     return true;
@@ -287,12 +300,13 @@ namespace {
   bool fn_mod(uint32_t* data, int argc, char** argv)
   {
     (void) (argc);
-    if (strcasecmp(argv[0], "alt") == 0)
+    if (strcasecmp(argv[0], "alt") == 0) {
       data[0] = XCB_MOD_MASK_1;
-    else if (strcasecmp(argv[0], "super") == 0)
+    } else if (strcasecmp(argv[0], "super") == 0) {
       data[0] = XCB_MOD_MASK_4;
-    else
+    } else {
       return false;
+}
 
     return true;
   }
@@ -301,18 +315,19 @@ namespace {
     char* btn = argv[0];
     (void) (argc);
 
-    if (strcasecmp(btn, "left") == 0)
+    if (strcasecmp(btn, "left") == 0) {
       data[0] = 1;
-    else if (strcasecmp(btn, "middle") == 0)
+    } else if (strcasecmp(btn, "middle") == 0) {
       data[0] = 2;
-    else if (strcasecmp(btn, "right") == 0)
+    } else if (strcasecmp(btn, "right") == 0) {
       data[0] = 3;
-    else if (strcasecmp(btn, "none") == 0)
+    } else if (strcasecmp(btn, "none") == 0) {
       data[0] = UINT32_MAX;
-    else if (strcasecmp(btn, "any") == 0)
+    } else if (strcasecmp(btn, "any") == 0) {
       data[0] = 0;
-    else
+    } else {
       return false;
+}
 
     return true;
   }
@@ -322,28 +337,29 @@ namespace {
     char* pos = argv[0];
     enum position snap_pos;
 
-    if (strcasecmp(pos, "topleft") == 0)
+    if (strcasecmp(pos, "topleft") == 0) {
       snap_pos = TOP_LEFT;
-    else if (strcasecmp(pos, "topright") == 0)
+    } else if (strcasecmp(pos, "topright") == 0) {
       snap_pos = TOP_RIGHT;
-    else if (strcasecmp(pos, "bottomleft") == 0)
+    } else if (strcasecmp(pos, "bottomleft") == 0) {
       snap_pos = BOTTOM_LEFT;
-    else if (strcasecmp(pos, "bottomright") == 0)
+    } else if (strcasecmp(pos, "bottomright") == 0) {
       snap_pos = BOTTOM_RIGHT;
-    else if (strcasecmp(pos, "middle") == 0)
+    } else if (strcasecmp(pos, "middle") == 0) {
       snap_pos = CENTER;
-    else if (strcasecmp(pos, "left") == 0)
+    } else if (strcasecmp(pos, "left") == 0) {
       snap_pos = LEFT;
-    else if (strcasecmp(pos, "bottom") == 0)
+    } else if (strcasecmp(pos, "bottom") == 0) {
       snap_pos = BOTTOM;
-    else if (strcasecmp(pos, "top") == 0)
+    } else if (strcasecmp(pos, "top") == 0) {
       snap_pos = TOP;
-    else if (strcasecmp(pos, "right") == 0)
+    } else if (strcasecmp(pos, "right") == 0) {
       snap_pos = RIGHT;
-    else if (strcasecmp(pos, "all") == 0)
+    } else if (strcasecmp(pos, "all") == 0) {
       snap_pos = ALL;
-    else
+    } else {
       return false;
+}
 
     (void) (argc);
     data[0] = snap_pos;
@@ -365,8 +381,9 @@ namespace {
   void init_xcb(xcb_connection_t** conn)
   {
     *conn = xcb_connect(nullptr, nullptr);
-    if (xcb_connection_has_error(*conn))
+    if (xcb_connection_has_error(*conn) != 0) {
       errx(EXIT_FAILURE, "unable to connect to X server");
+}
     scr = xcb_setup_roots_iterator(xcb_get_setup(*conn)).data;
   }
 
@@ -377,7 +394,8 @@ namespace {
     xcb_intern_atom_reply_t* reply =
       xcb_intern_atom_reply(conn, cookie, nullptr);
 
-    if (!reply) return XCB_ATOM_STRING;
+    if (reply == nullptr) { return XCB_ATOM_STRING;
+}
 
     return reply->atom;
   }
@@ -394,18 +412,21 @@ namespace {
     msg.type          = get_atom(ATOM_COMMAND);
     msg.format        = 32;
     data.data32[0]    = c->command;
-    if (c->handler != nullptr)
+    if (c->handler != nullptr) {
       status = (c->handler)(data.data32 + 1, argc, argv);
-    if (status == false) errx(EXIT_FAILURE, "malformed input");
+}
+    if (!status) { errx(EXIT_FAILURE, "malformed input");
+}
 
     msg.data = data;
 
-    cookie = xcb_send_event_checked(conn, false, scr->root,
+    cookie = xcb_send_event_checked(conn, 0u, scr->root,
                                     XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
                                     (char*) &msg);
 
     err = xcb_request_check(conn, cookie);
-    if (err) fprintf(stderr, "oops %d\n", err->error_code);
+    if (err != nullptr) { fprintf(stderr, "oops %d\n", err->error_code);
+}
     xcb_flush(conn);
   }
 
@@ -415,7 +436,7 @@ namespace {
     exit(status);
   }
 
-  void version(void)
+  void version()
   {
     fprintf(stderr, "%s %s\n", __NAME_CLIENT__, __THIS_VERSION__);
     fprintf(stderr, "Copyright (c) 2016-2017 Tudor Ioan Roman\n");
@@ -435,10 +456,11 @@ int main(int argc, char** argv)
   if (argc == 1) {
     usage(argv[0], EXIT_FAILURE);
   } else if (argc > 1) {
-    if (strcmp(argv[1], "-h") == 0)
+    if (strcmp(argv[1], "-h") == 0) {
       usage(argv[0], EXIT_SUCCESS);
-    else if (strcmp(argv[1], "-v") == 0)
+    } else if (strcmp(argv[1], "-v") == 0) {
       version();
+}
   }
 
   init_xcb(&conn);
@@ -448,23 +470,27 @@ int main(int argc, char** argv)
   command_argv = argv + 2;
 
   i = 0;
-  while (i < NR_IPC_COMMANDS && strcmp(argv[1], c[i].string_command) != 0) i++;
+  while (i < NR_IPC_COMMANDS && strcmp(argv[1], c[i].string_command) != 0) { i++;
+}
 
   if (i < NR_IPC_COMMANDS) {
     if (c[i].argc != -1) {
-      if (command_argc < c[i].argc)
+      if (command_argc < c[i].argc) {
         errx(EXIT_FAILURE, "not enough arguments");
-      else if (command_argc > c[i].argc)
+      } else if (command_argc > c[i].argc) {
         warnx("too many arguments");
+}
     }
-    if (c[i].argc == -1 || command_argc == c[i].argc)
+    if (c[i].argc == -1 || command_argc == c[i].argc) {
       send_command(&c[i], command_argc, command_argv);
+}
 
   } else {
     errx(EXIT_FAILURE, "no such command");
   }
 
-  if (conn != nullptr) xcb_disconnect(conn);
+  if (conn != nullptr) { xcb_disconnect(conn);
+}
 
   return 0;
 }

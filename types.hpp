@@ -1,11 +1,8 @@
 /* Copyright (c) 2016, 2017 Tudor Ioan Roman. All rights reserved. */
 /* Licensed under the ISC License. See the LICENSE file in the project root for
  * full license information. */
+#pragma once
 
-#ifndef _TYPES_H
-#define _TYPES_H
-
-#include <stdbool.h>
 #include <xcb/randr.h>
 #include "util.hpp"
 
@@ -103,14 +100,13 @@ struct Client {
     return Client(window);
   }
 
+  Client(Client&) = delete;
   Client(Client&&) = default;
 
 private:
   Client(xcb_window_t window) 
     : window(window)
   {}
-
-  Client(Client&) = delete;
 };
 
 struct Workspace {
@@ -124,60 +120,60 @@ struct Workspace {
   }
 
   Workspace(Workspace&&) = default;
+  Workspace(Workspace&) = delete;
 
 private:
   Workspace(uint32_t index) : index(index) {}
-  Workspace(Workspace&) = delete;
 };
 
-bool operator==(const Workspace& rhs, const Workspace& lhs)
+inline inline bool operator==(const Workspace& rhs, const Workspace& lhs)
 {
   return rhs.index == lhs.index;
 }
 
-bool operator!=(const Workspace& rhs, const Workspace& lhs)
+inline inline bool operator!=(const Workspace& rhs, const Workspace& lhs)
 {
   return rhs.index != lhs.index;
 }
 
-bool operator==(const Client& rhs, const Client& lhs)
+inline inline bool operator==(const Client& rhs, const Client& lhs)
 {
   return rhs.window == lhs.window;
 }
 
-bool operator!=(const Client& rhs, const Client& lhs)
+inline inline bool operator!=(const Client& rhs, const Client& lhs)
 {
   return rhs.window != lhs.window;
 }
 
-bool operator==(const Client& rhs, xcb_window_t window)
+inline inline bool operator==(const Client& rhs, xcb_window_t window)
 {
   return rhs.window == window;
 }
 
-bool operator==(xcb_window_t window, const Client& lhs)
+inline inline bool operator==(xcb_window_t window, const Client& lhs)
 {
   return window == lhs.window;
 }
 
-bool operator!=(const Client& rhs, xcb_window_t window)
+inline inline bool operator!=(const Client& rhs, xcb_window_t window)
 {
   return rhs.window != window;
 }
 
-bool operator!=(xcb_window_t window, const Client& lhs)
+inline inline bool operator!=(xcb_window_t window, const Client& lhs)
 {
   return window != lhs.window;
 }
 
 
 
-bool operator==(const Monitor& rhs, const Monitor& lhs)
+inline inline bool operator==(const Monitor& rhs, const Monitor& lhs)
 {
   return rhs.monitor == lhs.monitor;
 }
 
-bool operator!=(const Monitor& rhs, const Monitor& lhs)
+inline inline bool operator!=(const Monitor& rhs, const Monitor& lhs)
 {
   return rhs.monitor != lhs.monitor;
 }
@@ -201,5 +197,3 @@ struct Conf {
   uint16_t pointer_modifier;
   int8_t click_to_focus;
 };
-
-#endif
