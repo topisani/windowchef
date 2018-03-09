@@ -2837,9 +2837,11 @@ namespace {
 
   void ipc_wm_quit(uint32_t* d)
   {
+    halt = false;
     for (auto& ws : workspaces) {
       for (auto& cl : ws.windows) {
         close_window(cl);
+        halt = false;
       }
     }
     uint32_t code = d[0];
