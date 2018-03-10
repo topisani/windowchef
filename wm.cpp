@@ -1768,7 +1768,12 @@ namespace {
 
   void workspace_add_window(Client& client, Workspace& workspace)
   {
+    auto* old_ws = client.workspace;
     client.workspace = &workspace;
+    if (old_ws == nullptr) return;
+    auto uptr = old_ws->windows.erase(client);
+    if (uptr == nullptr) return;
+    workspace.windows.push_back(std::move(uptr));
     update_wm_desktop(client);
     workspace_goto(*current_ws);
   }

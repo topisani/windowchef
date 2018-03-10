@@ -152,12 +152,23 @@ struct nomove_vector {
     return *res;
   }
 
-  iterator erase(const value_type& v)
+  value_type& push_back(std::unique_ptr<value_type> ptr)
   {
-    return _order.erase(
-      std::remove_if(_order.begin(), _order.end(),
-                     [&v](auto&& uptr) { return uptr.get() == &v; }),
-      _order.end());
+    auto res = ptr.get();
+    _order.push_back(std::move(ptr));
+    return *res;
+  }
+
+  std::unique_ptr<value_type> erase(const value_type& v)
+  {
+    auto iter = std::find_if(_order.begin(), _order.end(), 
+                     [&v](auto&& uptr) { return uptr.get() == &v; });
+    if (iter != _order.end()) {
+      auto uptr = std::move(*iter);
+      _order.erase(iter);
+      return uptr;
+    }
+    return nullptr;
   }
 
   iterator rotate_to_back(iterator iter)
