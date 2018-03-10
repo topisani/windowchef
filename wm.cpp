@@ -1791,12 +1791,17 @@ namespace {
 
   void workspace_goto(Workspace& workspace)
   {
-    for (auto& win : current_ws->windows) {
-      win.user_set_unmap = false;
-      xcb_unmap_window(conn, win.window);
+    current_ws = &workspace;
+
+    // TODO: Instead of this, refresh the clients manually
+    for (auto& ws : workspaces) {
+      if (ws == *current_ws) continue;
+      for (auto& win : ws.windows) {
+        win.user_set_unmap = false;
+        xcb_unmap_window(conn, win.window);
+      }
     }
 
-    current_ws = &workspace;
 
     Client* last_win = nullptr;
     for (auto& win : current_ws->windows) {
