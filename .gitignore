@@ -1,3 +1,4 @@
 *.o
 windowchef
 waitron
+compile_commands.json
