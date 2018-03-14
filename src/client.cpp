@@ -26,31 +26,35 @@ namespace client {
   void version();
 
   Command c[] = {
-    {"window_move",            ipc::Command::WindowMove,           2,  fn_offset},
-    {"window_move_absolute",   ipc::Command::WindowMoveAbsolute,   2,  fn_offset},
-    {"window_resize",          ipc::Command::WindowResize,         2,  fn_offset},
-    {"window_resize_absolute", ipc::Command::WindowResizeAbsolute, 2,  fn_naturals},
-    {"window_maximize",        ipc::Command::WindowMaximize,       0,  nullptr},
-    {"window_unmaximize",      ipc::Command::WindowUnmaximize,     0,  nullptr},
-    {"window_hor_maximize",    ipc::Command::WindowHorMaximize,    0,  nullptr},
-    {"window_ver_maximize",    ipc::Command::WindowVerMaximize,    0,  nullptr},
-    {"window_close",           ipc::Command::WindowClose,          0,  nullptr},
-    {"window_put_in_grid",     ipc::Command::WindowPutInGrid,      4,  fn_naturals},
-    {"window_snap",            ipc::Command::WindowSnap,           1,  fn_position},
-    {"window_cycle",           ipc::Command::WindowCycle,          0,  nullptr},
-    {"window_rev_cycle",       ipc::Command::WindowRevCycle,       0,  nullptr},
-    {"window_cardinal_focus",  ipc::Command::WindowCardinalFocus,  1,  fn_direction},
-    {"window_focus",           ipc::Command::WindowFocus,          1,  fn_hex},
-    {"window_focus_last",      ipc::Command::WindowFocusLast,      0,  nullptr},
-    {"workspace_add_window",   ipc::Command::WorkspaceAddWindow,   1,  fn_naturals},
-    {"workspace_goto",         ipc::Command::WorkspaceGoto,        1,  fn_naturals},
-    {"workspace_set_bar",      ipc::Command::WorkspaceSetBar,      2,  fn_naturals},
-    {"wm_quit",                ipc::Command::WMQuit,               1,  fn_naturals},
-    {"wm_config",              ipc::Command::WMConfig,             -1, fn_config},
-    {"win_config",             ipc::Command::WindowConfig,         -1, fn_win_config},
+    // Command name,           // Enum value,                      // Arg count, // Arg parser
+    {"window_move",            ipc::Command::WindowMove,           2,            fn_offset},
+    {"window_move_absolute",   ipc::Command::WindowMoveAbsolute,   2,            fn_offset},
+    {"window_resize",          ipc::Command::WindowResize,         2,            fn_offset},
+    {"window_resize_absolute", ipc::Command::WindowResizeAbsolute, 2,            fn_naturals},
+    {"window_maximize",        ipc::Command::WindowMaximize,       0,            nullptr},
+    {"window_unmaximize",      ipc::Command::WindowUnmaximize,     0,            nullptr},
+    {"window_hor_maximize",    ipc::Command::WindowHorMaximize,    0,            nullptr},
+    {"window_ver_maximize",    ipc::Command::WindowVerMaximize,    0,            nullptr},
+    {"window_close",           ipc::Command::WindowClose,          0,            nullptr},
+    {"window_put_in_grid",     ipc::Command::WindowPutInGrid,      4,            fn_naturals},
+    {"window_snap",            ipc::Command::WindowSnap,           1,            fn_position},
+    {"window_cycle",           ipc::Command::WindowCycle,          0,            nullptr},
+    {"window_rev_cycle",       ipc::Command::WindowRevCycle,       0,            nullptr},
+    {"window_cardinal_focus",  ipc::Command::WindowCardinalFocus,  1,            fn_direction},
+    {"window_cardinal_move",   ipc::Command::WindowCardinalMove,   1,            fn_direction},
+    {"window_cardinal_resize", ipc::Command::WindowCardinalResize, 1,            fn_direction},
+    {"window_focus",           ipc::Command::WindowFocus,          1,            fn_hex},
+    {"window_focus_last",      ipc::Command::WindowFocusLast,      0,            nullptr},
+    {"workspace_add_window",   ipc::Command::WorkspaceAddWindow,   1,            fn_naturals},
+    {"workspace_goto",         ipc::Command::WorkspaceGoto,        1,            fn_naturals},
+    {"workspace_set_bar",      ipc::Command::WorkspaceSetBar,      2,            fn_naturals},
+    {"wm_quit",                ipc::Command::WMQuit,               1,            fn_naturals},
+    {"wm_config",              ipc::Command::WMConfig,             -1,           fn_config},
+    {"win_config",             ipc::Command::WindowConfig,         -1,           fn_win_config},
   };
 
   ConfigEntry configs[] = {
+    // Config name,                 // Enum value,              // Arg count, // Arg parser
     {"border_width",                ipc::Config::BorderWidth,              1, fn_naturals},
     {"color_focused",               ipc::Config::ColorFocused,             1, fn_hex},
     {"color_unfocused",             ipc::Config::ColorUnfocused,           1, fn_hex},
@@ -72,6 +76,7 @@ namespace client {
   };
 
   WinConfigEntry win_configs[] = {
+    // Config name,     // Enum value,       // Arg count, // Arg parser
     {"allow_offscreen", ipc::WinConfig::AllowOffscreen, 1, fn_bool},
   };
 

@@ -1277,6 +1277,63 @@ namespace wm {
     }
   }
 
+  void cardinal_move(Client& client, direction dir)
+  {
+    WinPosition new_pos = {client.geom.x, client.geom.y};
+    switch (dir) {
+      case direction::NORTH: {
+          new_pos.y = -2 * conf.border_width;
+          int16_t max = get_window_position(TOP_LEFT, client).y - 2 * conf.border_width;
+          for (Client& cl2 : current_ws().windows) {
+            auto y2 = get_window_position(BOTTOM_LEFT, cl2).y;
+            if (y2 < max) new_pos.y = std::max(y2, new_pos.y);
+          }
+          new_pos.y += 2 * conf.border_width;
+        }
+        break;
+      case direction::SOUTH: {
+          new_pos.y = client.monitor->height;
+          int16_t min = get_window_position(BOTTOM_LEFT, client).y + 2 * conf.border_width;
+          for (Client& cl2 : current_ws().windows) {
+            auto y2 = get_window_position(TOP_LEFT, cl2).y;
+            if (y2 > min) new_pos.y = std::min(y2, new_pos.y);
+          }
+          new_pos.y -= client.geom.height;
+          new_pos.y -= 2 * conf.border_width;
+        }
+        break;
+      case direction::WEST: {
+          new_pos.x = -2 * conf.border_width;
+          int16_t max = get_window_position(TOP_LEFT, client).x - 2 * conf.border_width;
+          for (Client& cl2 : current_ws().windows) {
+            auto x2 = get_window_position(TOP_RIGHT, cl2).x;
+            if (x2 < max) new_pos.x = std::max(x2, new_pos.x);
+          }
+          new_pos.x += 2 * conf.border_width;
+        }
+        break;
+      case direction::EAST: {
+          new_pos.x = client.monitor->width;
+          int16_t min = get_window_position(BOTTOM_RIGHT, client).x + 2 * conf.border_width;
+          for (Client& cl2 : current_ws().windows) {
+            auto x2 = get_window_position(BOTTOM_LEFT, cl2).x;
+            if (x2 > min) new_pos.x = std::min(x2, new_pos.x);
+          }
+          new_pos.x -= client.geom.width;
+          new_pos.x -= 2 * conf.border_width;
+        }
+        break;
+    }
+    client.geom.x = new_pos.x;
+    client.geom.y = new_pos.y;
+    teleport_window(client.window, new_pos.x, new_pos.y);
+  }
+
+  void cardinal_resize(Client& client, direction dir)
+  {
+
+  }
+
   WinPosition get_window_position(uint32_t mode, Client& client)
   {
     WinPosition pos;

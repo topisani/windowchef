@@ -74,6 +74,8 @@ namespace wm {
   void cycle_window_in_workspace(Client&);
   void rcycle_window_in_workspace(Client&);
   void cardinal_focus(uint32_t dir);
+  void cardinal_move(Client&, direction dir);
+  void cardinal_resize(Client&, direction dir);
   float get_distance_between_windows(Client& a, Client& b);
   float get_angle_between_windows(Client& a, Client& b);
   WinPosition get_window_position(uint32_t mode, Client& client);

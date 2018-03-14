@@ -29,6 +29,8 @@ namespace ipc {
     // WindowCycleInWorkspace,
     // WindowRevCycleInWorkspace,
     WindowCardinalFocus,
+    WindowCardinalMove,
+    WindowCardinalResize,
     WindowFocus,
     WindowFocusLast,
     WorkspaceAddWindow,
