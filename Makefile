@@ -5,7 +5,7 @@ NAME_DEFINES = -D__NAME__=\"$(__NAME__)\"                 \
 			   -D__THIS_VERSION__=\"$(__THIS_VERSION__)\" \
 			   -D__CONFIG_NAME__=\"$(__CONFIG_NAME__)\"   \
 
-SRC = wm.cpp client.cpp
+SRC = wm.cpp client.cpp ipc.cpp
 OBJ = $(SRC:.cpp=.o)
 BIN = $(__NAME__) $(__NAME_CLIENT__)
 CXXFLAGS += $(NAME_DEFINES)
@@ -16,7 +16,7 @@ all: $(BIN)
 debug: CXXFLAGS += -O0 -g -DD
 debug: $(__NAME__) $(__NAME_CLIENT__)
 
-$(__NAME__): wm.o
+$(__NAME__): wm.o ipc.o
 	@echo $@
 	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 

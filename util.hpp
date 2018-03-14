@@ -3,6 +3,11 @@
 #include <memory>
 #include <vector>
 
+/// A simple function pointer type alias
+template<typename Ret, typename... Args>
+using function_ptr = Ret (*)(Args...);
+
+
 /// An iterator wrapper that dereferences twice.
 template<typename Iter>
 struct double_iterator {

@@ -24,18 +24,16 @@
 #include "ipc.hpp"
 #include "types.hpp"
 #include "util.hpp"
+#include "wm.hpp"
 
 #define EVENT_MASK(ev) (((ev) & ~0x80))
 /* XCB event with the biggest value */
 #define LAST_XCB_EVENT XCB_GET_MODIFIER_MAPPING
 #define PI 3.14159265
 
-namespace {
-  /* atoms identifiers */
-  enum { WM_DELETE_WINDOW, _IPC_ATOM_COMMAND, NR_ATOMS };
+namespace wm {
 
-  /* button identifiers */
-  enum { BUTTON_LEFT, BUTTON_MIDDLE, BUTTON_RIGHT, NR_BUTTONS };
+  // Definitions
 
   /* connection to the X server */
   xcb_connection_t* conn;
@@ -50,189 +48,55 @@ namespace {
   bool should_close;
   int exit_code;
 
-  std::vector<Workspace> workspaces;
-  Workspace* current_ws = &workspaces[0];
+  namespace {
+    std::vector<Workspace> _workspaces;
+    Workspace* _current_ws;
 
-  /* keyboard modifiers (for mouse support) */
-  uint16_t num_lock, caps_lock, scroll_lock;
-  const xcb_button_index_t mouse_buttons[] = {
-    XCB_BUTTON_INDEX_1,
-    XCB_BUTTON_INDEX_2,
-    XCB_BUTTON_INDEX_3,
-  };
-  /* list of all windows */
+    /* atoms identifiers */
+    enum { WM_DELETE_WINDOW, _IPC_ATOM_COMMAND, NR_ATOMS };
 
-  std::vector<Monitor> mon_list;
-  /* Bar windows */
-  nomove_vector<Client> bar_list;
-  /* Windows to keep on top */
-  std::vector<xcb_window_t> on_top;
+    /* keyboard modifiers (for mouse support) */
+    uint16_t num_lock, caps_lock, scroll_lock;
+    const xcb_button_index_t mouse_buttons[] = {
+      XCB_BUTTON_INDEX_1,
+      XCB_BUTTON_INDEX_2,
+      XCB_BUTTON_INDEX_3,
+    };
+    /* list of all windows */
 
-  const char* atom_names[NR_ATOMS] = {
-    "WM_DELETE_WINDOW",
-    ATOM_COMMAND,
-  };
+    std::vector<Monitor> mon_list;
+    /* Bar windows */
+    nomove_vector<Client> bar_list;
+    /* Windows to keep on top */
+    std::vector<xcb_window_t> on_top;
 
-  xcb_atom_t ATOMS[NR_ATOMS];
-  /* function handlers for ipc commands */
-  void (*ipc_handlers[NR_IPC_COMMANDS])(uint32_t*);
-  /* function handlers for events received from the X server */
-  void (*events[LAST_XCB_EVENT + 1])(xcb_generic_event_t*);
+    const char* atom_names[NR_ATOMS] = {
+      "WM_DELETE_WINDOW",
+      ATOM_COMMAND,
+    };
 
-  void cleanup();
-  int setup();
-  int setup_randr();
-  void get_randr();
-  void get_outputs(xcb_randr_output_t* outputs,
-                   int len,
-                   xcb_timestamp_t timestamp);
-  Monitor* find_monitor(xcb_randr_output_t mon);
-  Monitor* find_monitor_by_coord(int16_t x, int16_t y);
-  Monitor* find_clones(xcb_randr_output_t mon, int16_t x, int16_t y);
-  Monitor& add_monitor(xcb_randr_output_t mon,
-                       char* name,
-                       int16_t x,
-                       int16_t y,
-                       uint16_t width,
-                       uint16_t height);
-  void free_monitor(Monitor& mon);
-  void get_monitor_size(Client& client,
-                        int16_t& mon_x,
-                        int16_t& mon_y,
-                        uint16_t& mon_width,
-                        uint16_t& mon_height,
-                        bool include_padding = true);
-  void arrange_by_monitor(Monitor& mon);
-  Client* setup_window(xcb_window_t win, bool require_type = false);
-  Client* focused_client();
-  void set_focused_no_raise(Client& client);
-  void set_focused(Client& client);
-  void set_focused_last_best();
-  void raise_window(xcb_window_t win);
-  void close_window(Client& client);
-  void delete_window(xcb_window_t win);
-  void teleport_window(xcb_window_t win, int16_t x, int16_t y);
-  void move_window(xcb_window_t win, int16_t x, int16_t y);
-  void resize_window_absolute(xcb_window_t win, uint16_t w, uint16_t h);
-  void resize_window(xcb_window_t win, int16_t w, int16_t h);
-  void fit_on_screen(Client& client);
-  void refresh_maxed(Client& client);
-  void fullscreen_window(Client& client);
-  void maximize_window(Client& client);
-  void hmaximize_window(Client& client);
-  void vmaximize_window(Client& client);
-  void unmaximize_geometry(Client& client);
-  void unmaximize_window(Client& client);
-  bool is_maxed(Client& client);
-  void cycle_window(Client& client);
-  void rcycle_window(Client& client);
-  void cycle_window_in_workspace(Client&);
-  void rcycle_window_in_workspace(Client&);
-  void cardinal_focus(uint32_t dir);
-  float get_distance_between_windows(Client& a, Client& b);
-  float get_angle_between_windows(Client& a, Client& b);
-  WinPosition get_window_position(uint32_t mode, Client& client);
-  bool is_overlapping(Client& a, Client& b);
-  bool is_in_valid_direction(uint32_t direction,
-                             float window_direction,
-                             float delta);
-  bool is_in_cardinal_direction(uint32_t direction, Client& a, Client& b);
-  void save_original_size(Client& client);
-  xcb_atom_t get_atom(const char* name);
-  bool get_pointer_location(xcb_window_t&, int16_t&, int16_t&);
-  void center_pointer(Client& client);
-  Client* find_client(xcb_window_t& win);
-  bool get_geometry(xcb_window_t& win,
-                    int16_t& x,
-                    int16_t& y,
-                    uint16_t& width,
-                    uint16_t& height);
-  void set_borders(Client& client, uint32_t color);
-  bool is_mapped(xcb_window_t win);
-  void free_window(Client& cl);
+    xcb_atom_t ATOMS[NR_ATOMS];
 
-  void add_to_client_list(xcb_window_t win);
-  void update_client_list();
-  void update_wm_desktop(Client& client);
+    /* function handlers for events received from the X server */
+    void (*events[LAST_XCB_EVENT + 1])(xcb_generic_event_t*);
+  } // namespace
 
-  void workspace_add_window(Client& client, Workspace& workspace);
-  //  void workspace_remove_window(Client&);
-  //  void workspace_remove_all_windows(Workspace&);
-  void workspace_goto(Workspace& workspace);
+  std::vector<Workspace>& workspaces() noexcept
+  {
+    return _workspaces;
+  }
 
-  bool show_bar(Workspace& ws = *current_ws);
-  void update_bar_visibility();
+  Workspace& get_workspace(int idx) {
+    if (idx > _workspaces.size()) {
+      DMSG("Attempt to access workspace %d. Only %d exist", idx, (int) _workspaces.size());
+      throw std::runtime_error("Out of bounds");
+    }
+    return _workspaces[idx];
+  }
 
-  // void change_nr_of_workspaces(uint32_t);
-  void refresh_borders();
-  void update_ewmh_wm_state(Client& client);
-  void handle_wm_state(Client& client, xcb_atom_t state, unsigned int action);
-
-  void snap_window(Client& client, enum position pos);
-  void grid_window(Client& client,
-                   uint32_t grid_width,
-                   uint32_t grid_height,
-                   uint32_t grid_x,
-                   uint32_t grid_y);
-
-  void register_event_handlers();
-  void event_configure_request(xcb_generic_event_t* ev);
-  void event_destroy_notify(xcb_generic_event_t* ev);
-  void event_enter_notify(xcb_generic_event_t* ev);
-  void event_map_request(xcb_generic_event_t* ev);
-  void event_map_notify(xcb_generic_event_t* ev);
-  void event_unmap_notify(xcb_generic_event_t* ev);
-  void event_configure_notify(xcb_generic_event_t* ev);
-  void event_circulate_request(xcb_generic_event_t* ev);
-  void event_client_message(xcb_generic_event_t* ev);
-  void event_focus_in(xcb_generic_event_t* ev);
-  void event_focus_out(xcb_generic_event_t* ev);
-  void event_button_press(xcb_generic_event_t* ev);
-
-  void register_ipc_handlers();
-  void ipc_window_move(uint32_t* d);
-  void ipc_window_move_absolute(uint32_t* d);
-  void ipc_window_resize(uint32_t* d);
-  void ipc_window_resize_absolute(uint32_t* d);
-  void ipc_window_maximize(uint32_t* d);
-  void ipc_window_unmaximize(uint32_t* d);
-  void ipc_window_hor_maximize(uint32_t* d);
-  void ipc_window_ver_maximize(uint32_t* d);
-  void ipc_window_close(uint32_t* d);
-  void ipc_window_put_in_grid(uint32_t* d);
-  void ipc_window_snap(uint32_t* d);
-  void ipc_window_cycle(uint32_t* d);
-  void ipc_window_rev_cycle(uint32_t* d);
-  //  void ipc_window_cycle_in_workspace(uint32_t*);
-  //  void ipc_window_rev_cycle_in_workspace(uint32_t*);
-  void ipc_window_cardinal_focus(uint32_t* d);
-  void ipc_window_focus(uint32_t* d);
-  void ipc_window_focus_last(uint32_t* d);
-  void ipc_workspace_add_window(uint32_t* d);
-  //  void ipc_workspace_remove_window(uint32_t*);
-  //  void ipc_workspace_remove_all_windows(uint32_t*);
-  void ipc_workspace_goto(uint32_t* d);
-  void ipc_workspace_set_bar(uint32_t* d);
-  void ipc_wm_quit(uint32_t* d);
-  void ipc_wm_config(uint32_t* d);
-  void ipc_window_config(uint32_t* d);
-
-  void pointer_init();
-  int16_t pointer_modfield_from_keysym(xcb_keysym_t keysym);
-  void window_grab_buttons(xcb_window_t win);
-  void window_grab_button(xcb_window_t win, uint8_t button, uint16_t modifier);
-  bool pointer_grab(enum pointer_action pac);
-  enum resize_handle get_handle(Client& client,
-                                xcb_point_t pos,
-                                enum pointer_action pac);
-  void track_pointer(Client& client, enum pointer_action pac, xcb_point_t pos);
-  void grab_buttons();
-  void ungrab_buttons();
-
-  void usage(char* name);
-  void version();
-  void load_defaults();
-  void load_config(char* config_path);
+  Workspace& current_ws() noexcept {
+    return *_current_ws;
+  }
 
   /*
    * Gracefully disconnect.
@@ -333,9 +197,9 @@ namespace {
 
     // workspaces.reserve(conf.workspaces);
     for (uint32_t i = 0; i < conf.workspaces; i++) {
-      workspaces.push_back(Workspace::make(i));
+      _workspaces.push_back(Workspace::make(i));
     }
-    current_ws = &workspaces[0];
+    _current_ws = &_workspaces[0];
     return 0;
   }
 
@@ -462,7 +326,7 @@ namespace {
          * becoming disabled. */
         mon = find_monitor(outputs[i]);
         if (mon != nullptr) {
-          for (auto&& client : current_ws->windows) {
+          for (auto&& client : current_ws().windows) {
             /* Move window from this monitor to
              * either the next one or the first one. */
             if (client.monitor == mon) {
@@ -614,7 +478,7 @@ namespace {
 
   void arrange_by_monitor(Monitor& mon)
   {
-    for (auto& client : current_ws->windows) {
+    for (auto& client : current_ws().windows) {
       if (client.monitor == &mon) {
         fit_on_screen(client);
       }
@@ -647,7 +511,7 @@ namespace {
         free(ev);
       }
       if (should_close) {
-        if (std::none_of(std::begin(workspaces), std::end(workspaces),
+        if (std::none_of(std::begin(_workspaces), std::end(_workspaces),
                          [](auto& ws) { return ws.windows.size() > 0; })) {
           halt = true;
         }
@@ -760,17 +624,17 @@ namespace {
 
     DMSG("new window was born 0x%08x\n", cl.window);
 
-    current_ws->windows.erase(cl);
-    Client& cli = current_ws->windows.push_back(std::move(cl));
+    current_ws().windows.erase(cl);
+    Client& cli = current_ws().windows.push_back(std::move(cl));
     return &cli;
   }
 
   Client* focused_client()
   {
     auto iter =
-      std::find_if(current_ws->windows.rbegin(), current_ws->windows.rend(),
+      std::find_if(current_ws().windows.rbegin(), current_ws().windows.rend(),
                    [](Client& cl) { return cl.mapped; });
-    if (iter == current_ws->windows.rend()) {
+    if (iter == current_ws().windows.rend()) {
       return nullptr;
     }
     return &*iter;
@@ -800,8 +664,8 @@ namespace {
                         ewmh->_NET_WM_STATE, ewmh->_NET_WM_STATE, 32, 2, data);
 
     // move the window to the back of the vector
-    current_ws->windows.rotate_to_back(std::find(
-      current_ws->windows.begin(), current_ws->windows.end(), client));
+    current_ws().windows.rotate_to_back(std::find(
+      current_ws().windows.begin(), current_ws().windows.end(), client));
 
     refresh_borders();
 
@@ -815,6 +679,7 @@ namespace {
   void set_focused(Client& client)
   {
     set_focused_no_raise(client);
+    
     raise_window(client.window);
   }
 
@@ -825,9 +690,9 @@ namespace {
   void set_focused_last_best()
   {
     auto iter =
-      std::find_if(current_ws->windows.rbegin(), current_ws->windows.rend(),
+      std::find_if(current_ws().windows.rbegin(), current_ws().windows.rend(),
                    [](Client& cl) { return cl.mapped; });
-    if (iter != current_ws->windows.rend()) {
+    if (iter != current_ws().windows.rend()) {
       set_focused(*iter);
     }
   }
@@ -1279,42 +1144,42 @@ namespace {
   void cycle_window(Client& client)
   {
     auto iter =
-      std::find(current_ws->windows.begin(), current_ws->windows.end(), client);
-    if (iter == current_ws->windows.end()) {
+      std::find(current_ws().windows.begin(), current_ws().windows.end(), client);
+    if (iter == current_ws().windows.end()) {
       return;
     }
-    iter = std::find_if(iter, current_ws->windows.end(), [&client](Client& cl) {
+    iter = std::find_if(iter, current_ws().windows.end(), [&client](Client& cl) {
       return cl.mapped && cl != client;
     });
-    if (iter != current_ws->windows.end()) {
+    if (iter != current_ws().windows.end()) {
       set_focused(*iter);
       return;
     }
-    iter = std::find_if(current_ws->windows.begin(), current_ws->windows.end(),
+    iter = std::find_if(current_ws().windows.begin(), current_ws().windows.end(),
                         [](Client& cl) { return cl.mapped; });
-    if (iter != current_ws->windows.end()) {
+    if (iter != current_ws().windows.end()) {
       set_focused(*iter);
     }
   }
 
   void rcycle_window(Client& client)
   {
-    auto iter = std::find(current_ws->windows.rbegin(),
-                          current_ws->windows.rend(), client);
-    if (iter == current_ws->windows.rend()) {
+    auto iter = std::find(current_ws().windows.rbegin(),
+                          current_ws().windows.rend(), client);
+    if (iter == current_ws().windows.rend()) {
       return;
     }
     iter =
-      std::find_if(iter, current_ws->windows.rend(),
+      std::find_if(iter, current_ws().windows.rend(),
                    [&client](Client& cl) { return cl.mapped && cl != client; });
-    if (iter != current_ws->windows.rend()) {
+    if (iter != current_ws().windows.rend()) {
       set_focused(*iter);
       return;
     }
     iter =
-      std::find_if(current_ws->windows.rbegin(), current_ws->windows.rend(),
+      std::find_if(current_ws().windows.rbegin(), current_ws().windows.rend(),
                    [](Client& cl) { return cl.mapped; });
-    if (iter != current_ws->windows.rend()) {
+    if (iter != current_ws().windows.rend()) {
       set_focused(*iter);
     }
   }
@@ -1329,7 +1194,7 @@ namespace {
 
     WinPosition focus_win_pos = get_window_position(CENTER, focused);
     std::vector<Client*> valid_windows;
-    for (Client& cl : current_ws->windows) {
+    for (Client& cl : current_ws().windows) {
       if (cl.window == focused.window) {
         continue;
       }
@@ -1633,9 +1498,9 @@ namespace {
   Client* find_client(xcb_window_t& win)
   {
     auto iter =
-      std::find_if(current_ws->windows.begin(), current_ws->windows.end(),
+      std::find_if(current_ws().windows.begin(), current_ws().windows.end(),
                    [win](auto& cl) { return cl.window == win; });
-    if (iter != current_ws->windows.end()) {
+    if (iter != current_ws().windows.end()) {
       return &*iter;
     }
     return nullptr;
@@ -1711,7 +1576,7 @@ namespace {
   void free_window(Client& cl)
   {
     DMSG("freeing 0x%08x\n", cl.window);
-    current_ws->windows.erase(cl);
+    current_ws().windows.erase(cl);
     refresh_borders();
   }
 
@@ -1768,14 +1633,14 @@ namespace {
 
   void workspace_add_window(Client& client, Workspace& workspace)
   {
-    auto* old_ws = client.workspace;
+    auto* old_ws     = client.workspace;
     client.workspace = &workspace;
     if (old_ws == nullptr) return;
     auto uptr = old_ws->windows.erase(client);
     if (uptr == nullptr) return;
     workspace.windows.push_back(std::move(uptr));
     update_wm_desktop(client);
-    workspace_goto(*current_ws);
+    workspace_goto(current_ws());
   }
 
   //  void workspace_remove_window(Client& client)
@@ -1789,18 +1654,18 @@ namespace {
   //  {
   //    if (workspace >= conf.workspaces) return;
   //
-  //    for (auto& cl : current_ws->windows) {
+  //    for (auto& cl : current_ws().windows) {
   //      if (cl.workspace == workspace) workspace_remove_window(&cl);
   //    }
   //  }
 
   void workspace_goto(Workspace& workspace)
   {
-    current_ws = &workspace;
+    _current_ws = &workspace;
 
     // TODO: Instead of this, refresh the clients manually
-    for (auto& ws : workspaces) {
-      if (ws == *current_ws) continue;
+    for (auto& ws : _workspaces) {
+      if (ws == current_ws()) continue;
       for (auto& win : ws.windows) {
         win.user_set_unmap = false;
         xcb_unmap_window(conn, win.window);
@@ -1809,7 +1674,7 @@ namespace {
 
 
     Client* last_win = nullptr;
-    for (auto& win : current_ws->windows) {
+    for (auto& win : current_ws().windows) {
       if (win.should_map) {
         win.user_set_map = false;
         xcb_map_window(conn, win.window);
@@ -1828,14 +1693,14 @@ namespace {
     refresh_borders();
 
     update_client_list();
-    xcb_ewmh_set_current_desktop(ewmh, 0, current_ws->index);
+    xcb_ewmh_set_current_desktop(ewmh, 0, current_ws().index);
     update_bar_visibility();
   }
 
   bool show_bar(Workspace& ws)
   {
     return ws.bar_shown;
-    // || std::none_of(current_ws->windows.begin(), current_ws->windows.end(),
+    // || std::none_of(current_ws().windows.begin(), current_ws().windows.end(),
     // [] (Client& cl) {
     //     return cl.mapped;
     //   });
@@ -1857,7 +1722,7 @@ namespace {
   //  void change_nr_of_workspaces(uint32_t n_workspaces)
   //  {
   //    if (n_workspaces < conf.workspaces) {
-  //      for (auto& win : current_ws->windows) {
+  //      for (auto& win : current_ws().windows) {
   //        if (win.workspace >= n_workspaces) {
   //          workspace_remove_window(&win);
   //        }
@@ -1889,7 +1754,7 @@ namespace {
 
     auto* focused = focused_client();
 
-    for (auto& win : current_ws->windows) {
+    for (auto& win : current_ws().windows) {
       refresh_borders(win, focused);
     }
   }
@@ -2218,7 +2083,7 @@ namespace {
     }
 
     // update_client_list();
-    workspace_goto(*current_ws);
+    workspace_goto(current_ws());
   }
 
   /*
@@ -2283,14 +2148,14 @@ namespace {
         client->geom.y -= client->geom.height / 2;
         teleport_window(client->window, client->geom.x, client->geom.y);
       }
-      workspace_add_window(*client, *current_ws);
+      workspace_add_window(*client, current_ws());
     }
     client->should_map = true;
 
-    if (client->workspace == current_ws) {
+    if (client->workspace == &current_ws()) {
       xcb_map_window(conn, e->window);
     } else {
-      workspace_add_window(*client, *current_ws);
+      workspace_add_window(*client, current_ws());
     }
 
 
@@ -2364,7 +2229,7 @@ namespace {
 
     set_focused_last_best();
 
-    // workspace_goto(current_ws);
+    // workspace_goto(current_ws());
     update_client_list();
   }
 
@@ -2388,7 +2253,7 @@ namespace {
 
         if (randr_base != -1) {
           get_randr();
-          for (auto& win : current_ws->windows) {
+          for (auto& win : current_ws().windows) {
             fit_on_screen(win);
           }
         }
@@ -2432,9 +2297,7 @@ namespace {
       /* Message from the client */
       data        = e->data.data32;
       ipc_command = data[0];
-      if (ipc_handlers[ipc_command] != nullptr) {
-        (ipc_handlers[ipc_command])(data + 1);
-      }
+      ipc::call_handler(static_cast<ipc::Command>(ipc_command), data + 1);
       DMSG("IPC Command %u with arguments %u %u %u\n", data[1], data[2],
            data[3], data[4]);
     } else {
@@ -2495,475 +2358,6 @@ namespace {
                      replay ? XCB_ALLOW_REPLAY_POINTER : XCB_ALLOW_SYNC_POINTER,
                      e->time);
     xcb_flush(conn);
-  }
-
-  /*
-   * Populates array with functions for handling IPC commands.
-   */
-
-  void register_ipc_handlers()
-  {
-    ipc_handlers[IPCWindowMove]           = ipc_window_move;
-    ipc_handlers[IPCWindowMoveAbsolute]   = ipc_window_move_absolute;
-    ipc_handlers[IPCWindowResize]         = ipc_window_resize;
-    ipc_handlers[IPCWindowResizeAbsolute] = ipc_window_resize_absolute;
-    ipc_handlers[IPCWindowMaximize]       = ipc_window_maximize;
-    ipc_handlers[IPCWindowUnmaximize]     = ipc_window_unmaximize;
-    ipc_handlers[IPCWindowHorMaximize]    = ipc_window_hor_maximize;
-    ipc_handlers[IPCWindowVerMaximize]    = ipc_window_ver_maximize;
-    ipc_handlers[IPCWindowClose]          = ipc_window_close;
-    ipc_handlers[IPCWindowPutInGrid]      = ipc_window_put_in_grid;
-    ipc_handlers[IPCWindowSnap]           = ipc_window_snap;
-    ipc_handlers[IPCWindowCycle]          = ipc_window_cycle;
-    ipc_handlers[IPCWindowRevCycle]       = ipc_window_rev_cycle;
-    //    ipc_handlers[IPCWindowCycleInWorkspace] =
-    //    ipc_window_cycle_in_workspace;
-    //    ipc_handlers[IPCWindowRevCycleInWorkspace] =
-    //      ipc_window_rev_cycle_in_workspace;
-    ipc_handlers[IPCWindowCardinalFocus] = ipc_window_cardinal_focus;
-    ipc_handlers[IPCWindowFocus]         = ipc_window_focus;
-    ipc_handlers[IPCWindowFocusLast]     = ipc_window_focus_last;
-    ipc_handlers[IPCWorkspaceAddWindow]  = ipc_workspace_add_window;
-    //    ipc_handlers[IPCWorkspaceRemoveWindow] = ipc_workspace_remove_window;
-    //    ipc_handlers[IPCWorkspaceRemoveAllWindows] =
-    //      ipc_workspace_remove_all_windows;
-    ipc_handlers[IPCWorkspaceGoto]   = ipc_workspace_goto;
-    ipc_handlers[IPCWorkspaceSetBar] = ipc_workspace_set_bar;
-    ipc_handlers[IPCWMQuit]          = ipc_wm_quit;
-    ipc_handlers[IPCWMConfig]        = ipc_wm_config;
-    ipc_handlers[IPCWindowConfig]    = ipc_window_config;
-  }
-
-  void ipc_window_move(uint32_t* d)
-  {
-    int16_t x, y;
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (is_maxed(focused)) {
-      unmaximize_window(focused);
-      set_focused(focused);
-    }
-
-    x = d[2];
-    y = d[3];
-    if (d[0] != 0u) {
-      x = -x;
-    }
-    if (d[1] != 0u) {
-      y = -y;
-    }
-
-    focused_client()->geom.x += x;
-    focused_client()->geom.y += y;
-
-    move_window(focused_client()->window, x, y);
-  }
-
-  void ipc_window_move_absolute(uint32_t* d)
-  {
-    int16_t x, y;
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (is_maxed(focused)) {
-      unmaximize_window(focused);
-      set_focused(focused);
-    }
-
-    x = d[2];
-    y = d[3];
-
-    if (d[0] == IPC_MUL_MINUS) {
-      x = -x;
-    }
-    if (d[1] == IPC_MUL_MINUS) {
-      y = -y;
-    }
-
-    focused_client()->geom.x = x;
-    focused_client()->geom.y = y;
-
-    teleport_window(focused_client()->window, x, y);
-  }
-
-  void ipc_window_resize(uint32_t* d)
-  {
-    int16_t w, h;
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (is_maxed(focused)) {
-      unmaximize_window(focused);
-      set_focused(focused);
-    }
-
-    w = d[2];
-    h = d[3];
-
-    if (d[0] == IPC_MUL_MINUS) {
-      w = -w;
-    }
-    if (d[1] == IPC_MUL_MINUS) {
-      h = -h;
-    }
-
-    resize_window(focused_client()->window, w, h);
-  }
-
-  void ipc_window_resize_absolute(uint32_t* d)
-  {
-    int16_t w, h;
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (is_maxed(focused)) {
-      unmaximize_window(focused);
-      set_focused(focused);
-    }
-
-    w = d[0];
-    h = d[1];
-
-    // if (focused_client()->min_width != 0 && w < focused_client()->min_width)
-    // w = focused_client()->min_width;
-
-    // if (focused_client()->min_height != 0 && h <
-    // focused_client()->min_height) h = focused_client()->min_height;
-
-    focused_client()->geom.width  = w;
-    focused_client()->geom.height = h;
-
-    resize_window_absolute(focused_client()->window, w, h);
-  }
-
-  void ipc_window_maximize(uint32_t* d)
-  {
-    (void) (d);
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (focused.hmaxed && focused.vmaxed) {
-      unmaximize_window(focused);
-    } else {
-      maximize_window(focused);
-    }
-
-    set_focused(focused);
-
-    xcb_flush(conn);
-  }
-
-  void ipc_window_unmaximize(uint32_t* d)
-  {
-    (void) (d);
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    unmaximize_window(focused);
-
-    set_focused(focused);
-
-    xcb_flush(conn);
-  }
-
-  void ipc_window_hor_maximize(uint32_t* d)
-  {
-    (void) (d);
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (focused.hmaxed) {
-      unmaximize_window(focused);
-    } else {
-      hmaximize_window(focused);
-    }
-
-    set_focused(focused);
-
-    xcb_flush(conn);
-  }
-
-  void ipc_window_ver_maximize(uint32_t* d)
-  {
-    (void) (d);
-
-    if (focused_client() == nullptr) {
-      return;
-    }
-    Client& focused = *focused_client();
-
-    if (focused.vmaxed) {
-      unmaximize_window(focused);
-    } else {
-      vmaximize_window(focused);
-    }
-
-    set_focused(focused);
-
-    xcb_flush(conn);
-  }
-
-  void ipc_window_close(uint32_t* d)
-  {
-    (void) (d);
-    if (focused_client() == nullptr) {
-      return;
-    }
-    close_window(*focused_client());
-  }
-
-  void ipc_window_put_in_grid(uint32_t* d)
-  {
-    uint32_t grid_width, grid_height;
-    uint32_t grid_x, grid_y;
-
-    grid_width  = d[0];
-    grid_height = d[1];
-    grid_x      = d[2];
-    grid_y      = d[3];
-
-    if (focused_client() == nullptr || grid_x >= grid_width ||
-        grid_y >= grid_height) {
-      return;
-    }
-
-    grid_window(*focused_client(), grid_width, grid_height, grid_x, grid_y);
-  }
-
-  void ipc_window_snap(uint32_t* d)
-  {
-    auto pos = (enum position) d[0];
-    snap_window(*focused_client(), pos);
-  }
-
-  void ipc_window_cycle(uint32_t* d)
-  {
-    (void) (d);
-
-    cycle_window(*focused_client());
-  }
-
-  void ipc_window_rev_cycle(uint32_t* d)
-  {
-    (void) (d);
-
-    rcycle_window(*focused_client());
-  }
-
-  void ipc_window_cardinal_focus(uint32_t* d)
-  {
-    uint32_t mode = d[0];
-    cardinal_focus(mode);
-  }
-
-  //  void ipc_window_cycle_in_workspace(uint32_t* d)
-  //  {
-  //    (void) (d);
-  //
-  //    if (focused_client() == nullptr) return;
-  //
-  //    cycle_window_in_workspace(focused_client());
-  //  }
-  //  void ipc_window_rev_cycle_in_workspace(uint32_t* d)
-  //  {
-  //    (void) (d);
-  //
-  //    rcycle_window_in_workspace(focused_client());
-  //  }
-
-  void ipc_window_focus(uint32_t* d)
-  {
-    Client* client = find_client(d[0]);
-
-    if (client != nullptr) {
-      set_focused(*client);
-    }
-  }
-
-  void ipc_window_focus_last(uint32_t* d)
-  {
-    (void) (d);
-    if (focused_client() != nullptr) {
-      set_focused_last_best();
-    }
-  }
-
-  void ipc_workspace_add_window(uint32_t* d)
-  {
-    if (focused_client() != nullptr) {
-      workspace_add_window(*focused_client(), workspaces.at(d[0] - 1));
-    }
-  }
-
-  //  void ipc_workspace_remove_window(uint32_t* d)
-  //  {
-  //    (void) (d);
-  //    if (focused_client() != nullptr)
-  //    workspace_remove_window(*focused_client());
-  //  }
-  //
-  //  void ipc_workspace_remove_all_windows(uint32_t* d)
-  //  {
-  //    workspace_remove_all_windows(d[0] - 1);
-  //  }
-
-  void ipc_workspace_goto(uint32_t* d)
-  {
-    workspace_goto(workspaces.at(d[0] - 1));
-  }
-
-  void ipc_workspace_set_bar(uint32_t* d)
-  {
-    Workspace& workspace = d[0] == 0 ? *current_ws : workspaces.at(d[0] - 1);
-    workspace.bar_shown  = (d[1] > 1 ? !workspace.bar_shown : (d[1] != 0u));
-
-    update_bar_visibility();
-    for (auto& win : current_ws->windows) {
-      fit_on_screen(win);
-    }
-  }
-
-  void ipc_wm_quit(uint32_t* d)
-  {
-    halt = false;
-    for (auto& ws : workspaces) {
-      for (auto& cl : ws.windows) {
-        close_window(cl);
-        halt = false;
-      }
-    }
-    uint32_t code = d[0];
-    should_close  = true;
-    if (code > 0) {
-      halt = true;
-    }
-    exit_code = code;
-  }
-
-  void ipc_wm_config(uint32_t* d)
-  {
-    auto key = (enum IPCConfig) d[0];
-
-    switch (key) {
-    case IPCConfigBorderWidth:
-      conf.border_width = d[1];
-      if (conf.apply_settings) {
-        refresh_borders();
-      }
-      break;
-    case IPCConfigColorFocused:
-      conf.focus_color = d[1];
-      if (conf.apply_settings) {
-        refresh_borders();
-      }
-      break;
-    case IPCConfigColorUnfocused:
-      conf.unfocus_color = d[1];
-      if (conf.apply_settings) {
-        refresh_borders();
-      }
-      break;
-    case IPCConfigGapWidth:
-      switch (d[1]) {
-      case LEFT: conf.gap_left = d[2]; break;
-      case BOTTOM: conf.gap_down = d[2]; break;
-      case TOP: conf.gap_up = d[2]; break;
-      case RIGHT: conf.gap_right = d[2]; break;
-      case ALL:
-        conf.gap_left = conf.gap_down = conf.gap_up = conf.gap_right = d[2];
-      default: break;
-      }
-      break;
-    case IPCConfigGridGapWidth: conf.grid_gap = d[1];
-    case IPCConfigCursorPosition:
-      conf.cursor_position = (enum position) d[1];
-      break;
-      //    case IPCConfigWorkspacesNr: change_nr_of_workspaces(d[1]); break;
-    case IPCConfigEnableSloppyFocus: conf.sloppy_focus = (d[1] != 0u); break;
-    case IPCConfigEnableResizeHints: conf.resize_hints = (d[1] != 0u);
-    case IPCConfigStickyWindows: conf.sticky_windows = (d[1] != 0u); break;
-    case IPCConfigEnableBorders: conf.borders = (d[1] != 0u); break;
-    case IPCConfigEnableLastWindowFocusing:
-      conf.last_window_focusing = (d[1] != 0u);
-      break;
-    case IPCConfigApplySettings: conf.apply_settings = (d[1] != 0u); break;
-    case IPCConfigReplayClickOnFocus:
-      conf.replay_click_on_focus = (d[1] != 0u);
-      break;
-    case IPCConfigPointerActions:
-      for (int i = 0; i < NR_BUTTONS; i++) {
-        conf.pointer_actions[i] = (enum pointer_action) d[i + 1];
-      }
-      ungrab_buttons();
-      grab_buttons();
-      break;
-    case IPCConfigPointerModifier:
-      conf.pointer_modifier = d[1];
-      ungrab_buttons();
-      grab_buttons();
-      break;
-    case IPCConfigClickToFocus:
-      if (d[1] == UINT32_MAX) {
-        conf.click_to_focus = -1;
-      } else {
-        conf.click_to_focus = d[1];
-      }
-      ungrab_buttons();
-      grab_buttons();
-      break;
-    case IPCConfigBarPadding:
-      conf.bar_padding[0] = d[1];
-      conf.bar_padding[1] = d[2];
-      conf.bar_padding[2] = d[3];
-      // conf.bar_padding[3] = d[4];
-      for (auto& win : current_ws->windows) {
-        fit_on_screen(win);
-      }
-      break;
-    default: DMSG("!!! unhandled config key %d\n", key); break;
-    }
-  }
-
-  void ipc_window_config(uint32_t* d)
-  {
-    auto key       = (IPCWinConfig) d[0];
-    Client* cl_ptr = find_client(d[1]);
-
-    DMSG("Window config nr %d for window %x", d[0], d[1]);
-    if (cl_ptr == nullptr) {
-      DMSG("Window config for nonexistant window %x", d[1]);
-      return;
-    }
-    d            = d + 2;
-    auto& client = *cl_ptr;
-    switch (key) {
-    case IPCWinConfig::AllowOffscreen:
-      client.allow_offscreen = (d[0] != 0u);
-      break;
-    default: DMSG("!!! unhandled config key %d\n", key); break;
-    }
   }
 
   void pointer_init()
@@ -3317,14 +2711,14 @@ namespace {
 
   void grab_buttons()
   {
-    for (auto& client : current_ws->windows) {
+    for (auto& client : current_ws().windows) {
       window_grab_buttons(client.window);
     }
   }
 
   void ungrab_buttons()
   {
-    for (auto& client : current_ws->windows) {
+    for (auto& client : current_ws().windows) {
       xcb_ungrab_button(conn, XCB_BUTTON_INDEX_ANY, client.window,
                         XCB_MOD_MASK_ANY);
       DMSG("ungrabbed buttons on 0x%08x\n", client.window);
@@ -3394,8 +2788,9 @@ namespace {
       wait(nullptr);
     }
   }
+} // namespace wm
 
-} // namespace
+using namespace wm;
 
 int main(int argc, char* argv[])
 {
@@ -3412,7 +2807,6 @@ int main(int argc, char* argv[])
   atexit(cleanup);
 
   register_event_handlers();
-  register_ipc_handlers();
   load_defaults();
 
   if (setup() < 0) {
@@ -3440,3 +2834,4 @@ int main(int argc, char* argv[])
 
   return exit_code;
 }
+

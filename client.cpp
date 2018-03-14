@@ -1,6 +1,7 @@
 /* Copyright (c) 2016, 2017 Tudor Ioan Roman. All rights reserved. */
 /* Licensed under the ISC License. See the LICENSE file in the project root for
  * full license information. */
+#include "client.hpp"
 
 #include <xcb/xcb.h>
 
@@ -19,101 +20,59 @@ xcb_screen_t* scr;
 
 int opterr = 0;
 
-namespace {
-
-  bool fn_offset(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_naturals(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_bool(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_config(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_win_config(uint32_t* data, int argc, char** argv);
-  bool fn_hex(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_position(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_gap(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_direction(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_pac(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_mod(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
-  bool fn_button(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+namespace client {
 
   void usage(char* /*name*/, int /*status*/);
   void version();
 
-  struct Command {
-    const char* string_command;
-    enum IPCCommand command;
-    int argc;
-    bool (*handler)(uint32_t*, int, char**);
-  };
-
-  struct ConfigEntry {
-    const char* key;
-    enum IPCConfig config;
-    int argc;
-    bool (*handler)(uint32_t*, int, char**);
-  };
-
-  struct WinConfigEntry {
-    const char* key;
-    IPCWinConfig config;
-    int argc;
-    bool (*handler)(uint32_t*, int, char**);
-  };
-
-  /* vim-tabularize is cool, i swear */
   Command c[] = {
-    {"window_move", IPCWindowMove, 2, fn_offset},
-    {"window_move_absolute", IPCWindowMoveAbsolute, 2, fn_offset},
-    {"window_resize", IPCWindowResize, 2, fn_offset},
-    {"window_resize_absolute", IPCWindowResizeAbsolute, 2, fn_naturals},
-    {"window_maximize", IPCWindowMaximize, 0, nullptr},
-    {"window_unmaximize", IPCWindowUnmaximize, 0, nullptr},
-    {"window_hor_maximize", IPCWindowHorMaximize, 0, nullptr},
-    {"window_ver_maximize", IPCWindowVerMaximize, 0, nullptr},
-    {"window_monocle", IPCWindowMonocle, 0, nullptr},
-    {"window_close", IPCWindowClose, 0, nullptr},
-    {"window_put_in_grid", IPCWindowPutInGrid, 4, fn_naturals},
-    {"window_snap", IPCWindowSnap, 1, fn_position},
-    {"window_cycle", IPCWindowCycle, 0, nullptr},
-    {"window_rev_cycle", IPCWindowRevCycle, 0, nullptr},
-    {"window_cycle_in_workspace", IPCWindowCycleInWorkspace, 0, nullptr},
-    {"window_rev_cycle_in_workspace", IPCWindowRevCycleInWorkspace, 0, nullptr},
-    {"window_cardinal_focus", IPCWindowCardinalFocus, 1, fn_direction},
-    {"window_focus", IPCWindowFocus, 1, fn_hex},
-    {"window_focus_last", IPCWindowFocusLast, 0, nullptr},
-    {"workspace_add_window", IPCWorkspaceAddWindow, 1, fn_naturals},
-    {"workspace_remove_window", IPCWorkspaceRemoveWindow, 0, nullptr},
-    {"workspace_remove_all_windows", IPCWorkspaceRemoveAllWindows, 1,
-     fn_naturals},
-    {"workspace_goto", IPCWorkspaceGoto, 1, fn_naturals},
-    {"workspace_set_bar", IPCWorkspaceSetBar, 2, fn_naturals},
-    {"wm_quit", IPCWMQuit, 1, fn_naturals},
-    {"wm_config", IPCWMConfig, -1, fn_config},
-    {"win_config", IPCWindowConfig, -1, fn_win_config},
+    {"window_move",            ipc::Command::WindowMove,           2,  fn_offset},
+    {"window_move_absolute",   ipc::Command::WindowMoveAbsolute,   2,  fn_offset},
+    {"window_resize",          ipc::Command::WindowResize,         2,  fn_offset},
+    {"window_resize_absolute", ipc::Command::WindowResizeAbsolute, 2,  fn_naturals},
+    {"window_maximize",        ipc::Command::WindowMaximize,       0,  nullptr},
+    {"window_unmaximize",      ipc::Command::WindowUnmaximize,     0,  nullptr},
+    {"window_hor_maximize",    ipc::Command::WindowHorMaximize,    0,  nullptr},
+    {"window_ver_maximize",    ipc::Command::WindowVerMaximize,    0,  nullptr},
+    {"window_close",           ipc::Command::WindowClose,          0,  nullptr},
+    {"window_put_in_grid",     ipc::Command::WindowPutInGrid,      4,  fn_naturals},
+    {"window_snap",            ipc::Command::WindowSnap,           1,  fn_position},
+    {"window_cycle",           ipc::Command::WindowCycle,          0,  nullptr},
+    {"window_rev_cycle",       ipc::Command::WindowRevCycle,       0,  nullptr},
+    {"window_cardinal_focus",  ipc::Command::WindowCardinalFocus,  1,  fn_direction},
+    {"window_focus",           ipc::Command::WindowFocus,          1,  fn_hex},
+    {"window_focus_last",      ipc::Command::WindowFocusLast,      0,  nullptr},
+    {"workspace_add_window",   ipc::Command::WorkspaceAddWindow,   1,  fn_naturals},
+    {"workspace_goto",         ipc::Command::WorkspaceGoto,        1,  fn_naturals},
+    {"workspace_set_bar",      ipc::Command::WorkspaceSetBar,      2,  fn_naturals},
+    {"wm_quit",                ipc::Command::WMQuit,               1,  fn_naturals},
+    {"wm_config",              ipc::Command::WMConfig,             -1, fn_config},
+    {"win_config",             ipc::Command::WindowConfig,         -1, fn_win_config},
   };
 
   ConfigEntry configs[] = {
-    {"border_width", IPCConfigBorderWidth, 1, fn_naturals},
-    {"color_focused", IPCConfigColorFocused, 1, fn_hex},
-    {"color_unfocused", IPCConfigColorUnfocused, 1, fn_hex},
-    {"gap_width", IPCConfigGapWidth, 2, fn_gap},
-    {"grid_gap_width", IPCConfigGridGapWidth, 1, fn_naturals},
-    {"cursor_position", IPCConfigCursorPosition, 1, fn_position},
-    {"workspaces_nr", IPCConfigWorkspacesNr, 1, fn_naturals},
-    {"enable_sloppy_focus", IPCConfigEnableSloppyFocus, 1, fn_bool},
-    {"enable_resize_hints", IPCConfigEnableResizeHints, 1, fn_bool},
-    {"sticky_windows", IPCConfigStickyWindows, 1, fn_bool},
-    {"enable_borders", IPCConfigEnableBorders, 1, fn_bool},
-    {"enable_last_window_focusing", IPCConfigEnableLastWindowFocusing, 1,
-     fn_bool},
-    {"apply_settings", IPCConfigApplySettings, 1, fn_bool},
-    {"replay_click_on_focus", IPCConfigReplayClickOnFocus, 1, fn_bool},
-    {"pointer_actions", IPCConfigPointerActions, 3, fn_pac},
-    {"pointer_modifier", IPCConfigPointerModifier, 1, fn_mod},
-    {"click_to_focus", IPCConfigClickToFocus, 1, fn_button},
-    {"bar_padding", IPCConfigBarPadding, 4, fn_naturals},
+    {"border_width",                ipc::Config::BorderWidth,              1, fn_naturals},
+    {"color_focused",               ipc::Config::ColorFocused,             1, fn_hex},
+    {"color_unfocused",             ipc::Config::ColorUnfocused,           1, fn_hex},
+    {"gap_width",                   ipc::Config::GapWidth,                 2, fn_gap},
+    {"grid_gap_width",              ipc::Config::GridGapWidth,             1, fn_naturals},
+    {"cursor_position",             ipc::Config::CursorPosition,           1, fn_position},
+    {"workspaces_nr",               ipc::Config::WorkspacesNr,             1, fn_naturals},
+    {"enable_sloppy_focus",         ipc::Config::EnableSloppyFocus,        1, fn_bool},
+    {"enable_resize_hints",         ipc::Config::EnableResizeHints,        1, fn_bool},
+    {"sticky_windows",              ipc::Config::StickyWindows,            1, fn_bool},
+    {"enable_borders",              ipc::Config::EnableBorders,            1, fn_bool},
+    {"enable_last_window_focusing", ipc::Config::EnableLastWindowFocusing, 1, fn_bool},
+    {"apply_settings",              ipc::Config::ApplySettings,            1, fn_bool},
+    {"replay_click_on_focus",       ipc::Config::ReplayClickOnFocus,       1, fn_bool},
+    {"pointer_actions",             ipc::Config::PointerActions,           3, fn_pac},
+    {"pointer_modifier",            ipc::Config::PointerModifier,          1, fn_mod},
+    {"click_to_focus",              ipc::Config::ClickToFocus,             1, fn_button},
+    {"bar_padding",                 ipc::Config::BarPadding,               4, fn_naturals},
   };
 
   WinConfigEntry win_configs[] = {
-    {"allow_offscreen", IPCWinConfig::AllowOffscreen, 1, fn_bool},
+    {"allow_offscreen", ipc::WinConfig::AllowOffscreen, 1, fn_bool},
   };
 
   /*
@@ -189,16 +148,16 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < NR_IPC_CONFIGS && strcmp(key, configs[i].key) != 0) {
+    while (i < ipc::n_configs && strcmp(key, configs[i].key) != 0) {
       i++;
     }
 
-    if (i < NR_IPC_CONFIGS) {
+    if (i < ipc::n_configs) {
       if (configs[i].argc != argc - 1) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              configs[i].argc);
       }
-      data[0] = configs[i].config;
+      data[0] = static_cast<uint32_t>(configs[i].config);
       status  = (configs[i].handler)(data + 1, argc - 1, argv + 1);
 
       if (!status) {
@@ -220,12 +179,12 @@ namespace {
     value = argv[1];
 
     i = 0;
-    while (i < (int) IPCWinConfig::Number &&
+    while (i < ipc::n_win_configs &&
            strcmp(key, win_configs[i].key) != 0) {
       i++;
     }
 
-    if (i < (int) IPCWinConfig::Number) {
+    if (i < ipc::n_win_configs) {
       if (win_configs[i].argc != argc - 2) {
         errx(EXIT_FAILURE, "too many or not enough arguments. Want: %d",
              win_configs[i].argc + 1);
@@ -409,6 +368,7 @@ namespace {
 
   void send_command(Command* c, int argc, char** argv)
   {
+    DMSG("Sending command %s", c->string_command);
     xcb_client_message_event_t msg;
     xcb_client_message_data_t data;
     xcb_generic_error_t* err;
@@ -418,7 +378,7 @@ namespace {
     msg.response_type = XCB_CLIENT_MESSAGE;
     msg.type          = get_atom(ATOM_COMMAND);
     msg.format        = 32;
-    data.data32[0]    = c->command;
+    data.data32[0]    = static_cast<uint32_t>(c->command);
     if (c->handler != nullptr) {
       status = (c->handler)(data.data32 + 1, argc, argv);
     }
@@ -455,6 +415,8 @@ namespace {
 
 } // namespace
 
+using namespace client;
+
 int main(int argc, char** argv)
 {
   int i;
@@ -478,11 +440,11 @@ int main(int argc, char** argv)
   command_argv = argv + 2;
 
   i = 0;
-  while (i < NR_IPC_COMMANDS && strcmp(argv[1], c[i].string_command) != 0) {
+  while (i < ipc::n_commands && strcmp(argv[1], c[i].string_command) != 0) {
     i++;
   }
 
-  if (i < NR_IPC_COMMANDS) {
+  if (i < ipc::n_commands) {
     if (c[i].argc != -1) {
       if (command_argc < c[i].argc) {
         errx(EXIT_FAILURE, "not enough arguments");
