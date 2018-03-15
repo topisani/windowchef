@@ -7,6 +7,11 @@
 template<typename Ret, typename... Args>
 using function_ptr = Ret (*)(Args...);
 
+template<typename T>
+constexpr auto underlying(T t) {
+  return static_cast<std::underlying_type_t<std::decay_t<T>>>(t);
+}
+
 
 /// An iterator wrapper that dereferences twice.
 template<typename Iter>

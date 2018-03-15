@@ -44,9 +44,9 @@
 #define REPLAY_CLICK_ON_FOCUS true
 
 /* default pointer actions */
-#define DEFAULT_LEFT_BUTTON_ACTION POINTER_ACTION_MOVE
-#define DEFAULT_MIDDLE_BUTTON_ACTION POINTER_ACTION_RESIZE_SIDE
-#define DEFAULT_RIGHT_BUTTON_ACTION POINTER_ACTION_RESIZE_CORNER
+#define DEFAULT_LEFT_BUTTON_ACTION PointerAction::Move
+#define DEFAULT_MIDDLE_BUTTON_ACTION PointerAction::ResizeSide
+#define DEFAULT_RIGHT_BUTTON_ACTION PointerAction::ResizeCorner
 
 /* default pointer modifier (super key). Set to XCB_MOD_MASK_1 for alt */
 #define POINTER_MODIFIER XCB_MOD_MASK_4

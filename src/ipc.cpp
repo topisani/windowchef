@@ -8,6 +8,7 @@
 #include "types.hpp"
 #include "util.hpp"
 #include "wm.hpp"
+#include "xcb.hpp"
 
 namespace ipc {
 
@@ -47,7 +48,7 @@ namespace ipc {
     wm::focused_client()->geom.x += x;
     wm::focused_client()->geom.y += y;
 
-    wm::move_window(wm::focused_client()->window, x, y);
+    xcb::move_window(wm::focused_client()->window, x, y);
   }
 
   template<>
@@ -75,10 +76,9 @@ namespace ipc {
       y = -y;
     }
 
-    wm::focused_client()->geom.x = x;
-    wm::focused_client()->geom.y = y;
-
-    wm::teleport_window(wm::focused_client()->window, x, y);
+    focused.geom.x = x;
+    focused.geom.y = y;
+    xcb::apply_client_geometry(focused);
   }
 
   template<>
@@ -106,7 +106,7 @@ namespace ipc {
       h = -h;
     }
 
-    wm::resize_window(wm::focused_client()->window, w, h);
+    wm::resize_window(focused, w, h);
   }
 
   template<>
@@ -133,10 +133,9 @@ namespace ipc {
     // if (wm::focused_client()->min_height != 0 && h <
     // wm::focused_client()->min_height) h = wm::focused_client()->min_height;
 
-    wm::focused_client()->geom.width  = w;
-    wm::focused_client()->geom.height = h;
-
-    wm::resize_window_absolute(wm::focused_client()->window, w, h);
+    focused.geom.width  = w;
+    focused.geom.height = h;
+    xcb::apply_client_geometry(focused);
   }
 
   template<>
@@ -156,8 +155,7 @@ namespace ipc {
     }
 
     wm::set_focused(focused);
-
-    xcb_flush(wm::conn);
+    xcb::flush();
   }
 
   template<>
@@ -173,8 +171,7 @@ namespace ipc {
     wm::unmaximize_window(focused);
 
     wm::set_focused(focused);
-
-    xcb_flush(wm::conn);
+    xcb::flush();
   }
 
   template<>
@@ -194,8 +191,7 @@ namespace ipc {
     }
 
     wm::set_focused(focused);
-
-    xcb_flush(wm::conn);
+    xcb::flush();
   }
 
   template<>
@@ -215,18 +211,17 @@ namespace ipc {
     }
 
     wm::set_focused(focused);
-
-    xcb_flush(wm::conn);
+    xcb::flush();
   }
 
   template<>
   void handler<Command::WindowClose>(Data d)
   {
     (void) (d);
-    if (wm::focused_client() == nullptr) {
-      return;
+    if (auto* focused = wm::focused_client(); 
+        focused != nullptr) {
+      xcb::close_window(*focused);
     }
-    wm::close_window(*wm::focused_client());
   }
 
   template<>
@@ -240,18 +235,17 @@ namespace ipc {
     grid_x      = d[2];
     grid_y      = d[3];
 
-    if (wm::focused_client() == nullptr || grid_x >= grid_width ||
-        grid_y >= grid_height) {
-      return;
+    if (auto* focused = wm::focused_client(); 
+        focused != nullptr && grid_x < grid_width &&
+        grid_y < grid_height) {
+      wm::grid_window(*wm::focused_client(), grid_width, grid_height, grid_x, grid_y);
     }
-
-    wm::grid_window(*wm::focused_client(), grid_width, grid_height, grid_x, grid_y);
   }
 
   template<>
   void handler<Command::WindowSnap>(Data d)
   {
-    auto pos = (enum position) d[0];
+    auto pos = (Position) d[0];
     wm::snap_window(*wm::focused_client(), pos);
   }
 
@@ -375,7 +369,7 @@ namespace ipc {
     wm::halt = false;
     for (auto& ws : wm::workspaces()) {
       for (auto& cl : ws.windows) {
-        wm::close_window(cl);
+        xcb::close_window(cl);
         wm::halt = false;
       }
     }
@@ -424,7 +418,7 @@ namespace ipc {
       break;
     case Config::GridGapWidth: wm::conf.grid_gap = d[1];
     case Config::CursorPosition:
-      wm::conf.cursor_position = (enum position) d[1];
+      wm::conf.cursor_position = (Position) d[1];
       break;
       //    case Config::WorkspacesNr: change_nr_of_workspaces(d[1]); break;
     case Config::EnableSloppyFocus: wm::conf.sloppy_focus = (d[1] != 0u); break;
@@ -439,8 +433,8 @@ namespace ipc {
       wm::conf.replay_click_on_focus = (d[1] != 0u);
       break;
     case Config::PointerActions:
-      for (int i = 0; i < wm::NR_BUTTONS; i++) {
-        wm::conf.pointer_actions[i] = (enum pointer_action) d[i + 1];
+      for (int i = 0; i < underlying(Buttons::Count); i++) {
+        wm::conf.pointer_actions[i] = (PointerAction) d[i + 1];
       }
       wm::ungrab_buttons();
       wm::grab_buttons();

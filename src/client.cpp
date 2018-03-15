@@ -251,15 +251,15 @@ namespace client {
     for (int i = 0; i < argc; i++) {
       char* pac = argv[i];
       if (strcasecmp(pac, "nothing") == 0) {
-        data[i] = POINTER_ACTION_NOTHING;
+        data[i] = underlying(PointerAction::Nothing);
       } else if (strcasecmp(pac, "focus") == 0) {
-        data[i] = POINTER_ACTION_FOCUS;
+        data[i] = underlying(PointerAction::Focus);
       } else if (strcasecmp(pac, "move") == 0) {
-        data[i] = POINTER_ACTION_MOVE;
+        data[i] = underlying(PointerAction::Move);
       } else if (strcasecmp(pac, "resize_corner") == 0) {
-        data[i] = POINTER_ACTION_RESIZE_CORNER;
+        data[i] = underlying(PointerAction::ResizeCorner);
       } else if (strcasecmp(pac, "resize_side") == 0) {
-        data[i] = POINTER_ACTION_RESIZE_SIDE;
+        data[i] = underlying(PointerAction::ResizeSide);
       } else {
         return false;
       }
@@ -305,7 +305,7 @@ namespace client {
   bool fn_position(uint32_t* data, int argc, char** argv)
   {
     char* pos = argv[0];
-    enum position snap_pos;
+    Position snap_pos;
 
     if (strcasecmp(pos, "topleft") == 0) {
       snap_pos = TOP_LEFT;
