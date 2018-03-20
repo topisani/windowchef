@@ -14,6 +14,7 @@ namespace wm {
   extern int exit_code;
 
   std::vector<Workspace>& workspaces() noexcept;
+  std::vector<xcb_window_t>& on_top() noexcept;
   Workspace& get_workspace(int idx);
   Workspace& current_ws() noexcept;
 
@@ -43,7 +44,7 @@ namespace wm {
   void rcycle_window_in_workspace(Client&);
   void cardinal_focus(uint32_t dir);
   void cardinal_move(Client&, direction dir);
-  void cardinal_resize(Client&, direction dir);
+  void cardinal_resize(Client&, direction dir, bool shrink = false);
   bool is_in_valid_direction(uint32_t direction,
                              float window_direction,
                              float delta);

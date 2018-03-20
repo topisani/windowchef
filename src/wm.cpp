@@ -37,7 +37,7 @@ namespace wm {
     /* Bar windows */
     nomove_vector<Client> bar_list;
     /* Windows to keep on top */
-    std::vector<xcb_window_t> on_top;
+    std::vector<xcb_window_t> _on_top;
 
     /* function handlers for events received from the X server */
     void (*events[xcb::last_xcb_event + 1])(xcb_generic_event_t*);
@@ -46,6 +46,11 @@ namespace wm {
   std::vector<Workspace>& workspaces() noexcept
   {
     return _workspaces;
+  }
+
+  std::vector<xcb_window_t>& on_top() noexcept
+  {
+    return _on_top;
   }
 
   Workspace& get_workspace(int idx)
@@ -163,7 +168,7 @@ namespace wm {
         is_bar = true;
         ignore = false;
         break;
-      case WindowType::Notification: on_top.push_back(client); [[fallthrough]];
+      case WindowType::Notification: _on_top.push_back(client); [[fallthrough]];
       case WindowType::Desktop:
         map    = true;
         ignore = true;
@@ -608,102 +613,102 @@ namespace wm {
     }
   }
 
-  void cardinal_move(Client& client, direction dir)
+  /// Get the nearest opposing edge for a client in a direction
+  ///
+  /// \param invert Get the nearest edge from client's border in the opposite end but direction `dir`
+  static Coordinates nearest_edge(Client& client, direction dir, bool invert = false)
   {
     auto mon_geom = get_monitor_size(client);
-    auto new_pos = client.geom.position(TOP_LEFT);
+    auto top_left = client.geom.position(Position::TOP_LEFT);
+    auto bottom_right = client.geom.position(Position::BOTTOM_RIGHT);
+    if (invert) {
+      switch (dir) {
+      case direction::NORTH: dir = direction::SOUTH; break;
+      case direction::SOUTH: dir = direction::NORTH; break;
+      case direction::WEST: dir = direction::EAST; break;
+      case direction::EAST: dir = direction::WEST; break;
+      }
+      std::swap(top_left, bottom_right);
+    }
+    auto res = client.geom.position(Position::TOP_LEFT);
     switch (dir) {
     case direction::NORTH: {
-      new_pos.y   = -2 * conf.border_width;
-      int16_t max = client.geom.position(TOP_LEFT).y - 2 * conf.border_width;
+      res.y   = mon_geom.y -2 * conf.border_width;
+      int16_t max = top_left.y - 2 * conf.border_width;
       for (Client& cl2 : current_ws().windows) {
-        auto y2 = cl2.geom.position(BOTTOM_LEFT).y;
-        if (y2 < max) new_pos.y = std::max(y2, new_pos.y);
+        auto y2 = cl2.geom.position(Position::BOTTOM_RIGHT).y;
+        if (y2 < max) res.y = std::max(y2, res.y);
       }
-      new_pos.y += 2 * conf.border_width;
+      res.y += 2 * conf.border_width;
     } break;
     case direction::SOUTH: {
-      new_pos.y   = mon_geom.height;
-      int16_t min = client.geom.position(BOTTOM_LEFT).y + 2 * conf.border_width;
+      res.y   = mon_geom.y + mon_geom.height;
+      int16_t min = bottom_right.y + 2 * conf.border_width;
       for (Client& cl2 : current_ws().windows) {
-        auto y2 = cl2.geom.position(TOP_LEFT).y;
-        if (y2 > min) new_pos.y = std::min(y2, new_pos.y);
+        auto y2 = cl2.geom.position(Position::TOP_LEFT).y;
+        if (y2 > min) res.y = std::min(y2, res.y);
       }
-      new_pos.y -= client.geom.height;
-      new_pos.y -= 2 * conf.border_width;
+      res.y -= 2 * conf.border_width;
     } break;
     case direction::WEST: {
-      new_pos.x   = -2 * conf.border_width;
-      int16_t max = client.geom.position(TOP_LEFT).x - 2 * conf.border_width;
+      res.x   = mon_geom.x -2 * conf.border_width;
+      int16_t max = top_left.x - 2 * conf.border_width;
       for (Client& cl2 : current_ws().windows) {
-        auto x2 = cl2.geom.position(TOP_RIGHT).x;
-        if (x2 < max) new_pos.x = std::max(x2, new_pos.x);
+        auto x2 = cl2.geom.position(Position::BOTTOM_RIGHT).x;
+        if (x2 < max) res.x = std::max(x2, res.x);
       }
-      new_pos.x += 2 * conf.border_width;
+      res.x += 2 * conf.border_width;
     } break;
     case direction::EAST: {
-      new_pos.x = mon_geom.width;
-      int16_t min =
-        client.geom.position(BOTTOM_RIGHT).x + 2 * conf.border_width;
+      res.x = mon_geom.x + mon_geom.width;
+      int16_t min = bottom_right.x + 2 * conf.border_width;
       for (Client& cl2 : current_ws().windows) {
-        auto x2 = cl2.geom.position(BOTTOM_LEFT).x;
-        if (x2 > min) new_pos.x = std::min(x2, new_pos.x);
+        auto x2 = cl2.geom.position(Position::TOP_LEFT).x;
+        if (x2 > min) res.x = std::min(x2, res.x);
       }
-      new_pos.x -= client.geom.width;
-      new_pos.x -= 2 * conf.border_width;
+      res.x -= 2 * conf.border_width;
     } break;
     }
-    client.geom.x = new_pos.x;
-    client.geom.y = new_pos.y;
+    return res;
+  }
+
+  void cardinal_move(Client& client, direction dir)
+  {
+    client.geom = nearest_edge(client, dir);
+    switch (dir) {
+    case direction::NORTH: break;
+    case direction::SOUTH:
+      client.geom.y -= client.geom.height;
+      break;
+    case direction::WEST: break;
+    case direction::EAST:
+      client.geom.x -= client.geom.width;
+      break;
+    }
     xcb::apply_client_geometry(client);
   }
 
-  void cardinal_resize(Client& client, direction dir)
+  void cardinal_resize(Client& client, direction dir, bool shrink)
   {
-    auto new_pos = client.geom.position(TOP_LEFT);
+    auto tl = client.geom.position(Position::TOP_LEFT);
+    auto br = client.geom.position(Position::BOTTOM_RIGHT);
+    auto edge = nearest_edge(client, dir, shrink);
     switch (dir) {
-    case direction::NORTH: {
-      new_pos.y   = -2 * conf.border_width;
-      int16_t max = client.geom.position(TOP_LEFT).y - 2 * conf.border_width;
-      for (Client& cl2 : current_ws().windows) {
-        auto y2 = cl2.geom.position(BOTTOM_LEFT).y;
-        if (y2 < max) new_pos.y = std::max(y2, new_pos.y);
-      }
-      new_pos.y += 2 * conf.border_width;
-    } break;
-    case direction::SOUTH: {
-      new_pos.y   = client.monitor->geom.height;
-      int16_t min = client.geom.position(BOTTOM_LEFT).y + 2 * conf.border_width;
-      for (Client& cl2 : current_ws().windows) {
-        auto y2 = cl2.geom.position(TOP_LEFT).y;
-        if (y2 > min) new_pos.y = std::min(y2, new_pos.y);
-      }
-      new_pos.y -= client.geom.height;
-      new_pos.y -= 2 * conf.border_width;
-    } break;
-    case direction::WEST: {
-      new_pos.x   = -2 * conf.border_width;
-      int16_t max = client.geom.position(TOP_LEFT).x - 2 * conf.border_width;
-      for (Client& cl2 : current_ws().windows) {
-        auto x2 = cl2.geom.position(TOP_RIGHT).x;
-        if (x2 < max) new_pos.x = std::max(x2, new_pos.x);
-      }
-      new_pos.x += 2 * conf.border_width;
-    } break;
-    case direction::EAST: {
-      new_pos.x = client.monitor->geom.width;
-      int16_t min =
-        client.geom.position(BOTTOM_RIGHT).x + 2 * conf.border_width;
-      for (Client& cl2 : current_ws().windows) {
-        auto x2 = cl2.geom.position(BOTTOM_LEFT).x;
-        if (x2 > min) new_pos.x = std::min(x2, new_pos.x);
-      }
-      new_pos.x -= client.geom.width;
-      new_pos.x -= 2 * conf.border_width;
-    } break;
+    case direction::NORTH:
+      client.geom.y = edge.y;
+      client.geom.height += tl.y - edge.y;
+      break;
+    case direction::SOUTH:
+      client.geom.height = edge.y - tl.y;
+      break;
+    case direction::WEST:
+      client.geom.x = edge.x;
+      client.geom.width += tl.x - edge.x;
+      break;
+    case direction::EAST:
+      client.geom.width = edge.x - tl.x;
+      break;
     }
-    client.geom.x = new_pos.x;
-    client.geom.y = new_pos.y;
     xcb::apply_client_geometry(client);
   }
 
@@ -1133,8 +1138,8 @@ namespace wm {
     auto* e = (xcb_destroy_notify_event_t*) ev;
     DMSG("Destroy notify event: %d\n", e->window);
 
-    on_top.erase(std::remove(on_top.begin(), on_top.end(), e->window),
-                 on_top.end());
+    _on_top.erase(std::remove(_on_top.begin(), _on_top.end(), e->window),
+                 _on_top.end());
     client = find_client(e->window);
 
     if (client != nullptr) {
@@ -1244,8 +1249,8 @@ namespace wm {
     Client* client = nullptr;
     DMSG("Unmap event: %d\n", e->window);
 
-    on_top.erase(std::remove(on_top.begin(), on_top.end(), e->window),
-                 on_top.end());
+    _on_top.erase(std::remove(_on_top.begin(), _on_top.end(), e->window),
+                 _on_top.end());
     client = find_client(e->window);
     if (client == nullptr) {
       return;

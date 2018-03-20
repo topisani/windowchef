@@ -281,11 +281,19 @@ namespace ipc {
   }
 
   template<>
-  void handler<Command::WindowCardinalResize>(Data d)
+  void handler<Command::WindowCardinalGrow>(Data d)
   {
     direction mode = static_cast<direction>(d[0]);
     if (auto focus = wm::focused_client())
-      wm::cardinal_resize(*focus, mode);
+      wm::cardinal_resize(*focus, mode, false);
+  }
+
+  template<>
+  void handler<Command::WindowCardinalShrink>(Data d)
+  {
+    direction mode = static_cast<direction>(d[0]);
+    if (auto focus = wm::focused_client())
+      wm::cardinal_resize(*focus, mode, true);
   }
   // template<>
   //  void handler<Command::WindowCycleInWorkspace>(Data d)

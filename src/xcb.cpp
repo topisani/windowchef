@@ -472,10 +472,10 @@ namespace xcb {
   {
     uint32_t values[1] = {XCB_STACK_MODE_ABOVE};
     xcb_configure_window(_conn, win, XCB_CONFIG_WINDOW_STACK_MODE, values);
-    // for (auto ot_win : wm::on_top) {
-    // xcb_configure_window(_conn, ot_win, XCB_CONFIG_WINDOW_STACK_MODE,
-    // values);
-    // }
+    for (auto ot_win : wm::on_top()) {
+      xcb_configure_window(_conn, ot_win, XCB_CONFIG_WINDOW_STACK_MODE,
+        values);
+    }
   }
 
   /// Returns true if the client supports the given protocol atom (like
