@@ -12,6 +12,7 @@ namespace client {
     enum ipc::Command command;
     int argc;
     function_ptr<bool, uint32_t*, int, char**> handler;
+    function_ptr<std::string, uint32_t*> response_handler = nullptr;
   };
 
   struct ConfigEntry {
@@ -40,4 +41,6 @@ namespace client {
   bool fn_pac(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
   bool fn_mod(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
   bool fn_button(uint32_t* /*data*/, int /*argc*/, char** /*argv*/);
+
+  std::string print_response(uint32_t*) noexcept;
 }

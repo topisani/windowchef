@@ -1,5 +1,6 @@
 #pragma once
 #include <optional>
+#include <mutex>
 
 #include <xcb/xcb_ewmh.h>
 #include "types.hpp"
@@ -12,9 +13,12 @@ namespace wm {
   extern bool halt;
   extern bool should_close;
   extern int exit_code;
+  /// Synchronize between the IPC loop and the X loop
+  extern std::mutex global_lock;
 
   std::vector<Workspace>& workspaces() noexcept;
   std::vector<xcb_window_t>& on_top() noexcept;
+  nomove_vector<Client>& bar_list() noexcept;
   Workspace& get_workspace(int idx);
   Workspace& current_ws() noexcept;
 
@@ -52,7 +56,7 @@ namespace wm {
   void save_original_size(Client& client, bool overwrite = true);
   xcb_atom_t get_atom(const char* name);
   void center_pointer(Client& client);
-  Client* find_client(xcb_window_t& win);
+  Client* find_client(xcb_window_t win);
   std::optional<Geometry> get_geometry(xcb_window_t& win);
   void set_borders(Client& client, uint32_t color);
   void free_window(Client& cl);

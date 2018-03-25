@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <vector>
+#include <string>
+#include <sstream>
 
 /// A simple function pointer type alias
 template<typename Ret, typename... Args>
@@ -260,3 +262,12 @@ struct nomove_vector {
     return _order.rend();
   }
 };
+
+/// Join strings
+template<typename... Args>
+std::string str_join(Args&&... args) noexcept
+{
+  std::ostringstream stream;
+  (stream << ... << std::forward<Args>(args));
+  return stream.str();
+}

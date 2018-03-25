@@ -6,10 +6,11 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <thread>
 
 #include "common.hpp"
 #include "config.hpp"
-#include "ipc.hpp"
+#include "ipc/server.hpp"
 #include "types.hpp"
 #include "util.hpp"
 #include "wm.hpp"
@@ -29,13 +30,14 @@ namespace wm {
   bool halt;
   bool should_close;
   int exit_code;
+  std::mutex global_lock;
 
   namespace {
     std::vector<Workspace> _workspaces;
     Workspace* _current_ws;
 
     /* Bar windows */
-    nomove_vector<Client> bar_list;
+    nomove_vector<Client> _bar_list;
     /* Windows to keep on top */
     std::vector<xcb_window_t> _on_top;
 
@@ -51,6 +53,11 @@ namespace wm {
   std::vector<xcb_window_t>& on_top() noexcept
   {
     return _on_top;
+  }
+
+  nomove_vector<Client>& bar_list() noexcept
+  {
+    return _bar_list;
   }
 
   Workspace& get_workspace(int idx)
@@ -129,30 +136,6 @@ namespace wm {
   }
 
 
-  /// Wait for events and handle them.
-  void run()
-  {
-    halt         = false;
-    should_close = false;
-    exit_code    = EXIT_SUCCESS;
-    while (!halt) {
-      xcb::flush();
-      auto ev = xcb::wait_for_event();
-      if (should_close) {
-        if (std::none_of(std::begin(_workspaces), std::end(_workspaces),
-                         [](auto& ws) { return ws.windows.size() > 0; })) {
-          halt = true;
-        }
-      }
-      if (ev != nullptr) {
-        DMSG("X Event %d\n", ev->response_type & ~0x80);
-        if (events[EVENT_MASK(ev->response_type)] != nullptr) {
-          (events[EVENT_MASK(ev->response_type)])(ev.get());
-        }
-      }
-    }
-  }
-
   /// Initialize a window for further work.
   Client* setup_window(xcb_window_t win, bool require_type)
   {
@@ -168,7 +151,9 @@ namespace wm {
         is_bar = true;
         ignore = false;
         break;
-      case WindowType::Notification: _on_top.push_back(client); [[fallthrough]];
+      case WindowType::Notification: 
+        _on_top.push_back(client); 
+        [[fallthrough]];
       case WindowType::Desktop:
         map    = true;
         ignore = true;
@@ -182,8 +167,8 @@ namespace wm {
         return nullptr;
       }
       if (is_bar) {
-        bar_list.erase(client);
-        bar_list.push_back(std::move(client));
+        _bar_list.erase(client);
+        _bar_list.push_back(std::move(client));
         update_bar_visibility();
         return nullptr;
       }
@@ -774,7 +759,7 @@ namespace wm {
   }
 
   /// Get the client instance with a given window id.
-  Client* find_client(xcb_window_t& win)
+  Client* find_client(xcb_window_t win)
   {
     auto iter =
       std::find_if(current_ws().windows.begin(), current_ws().windows.end(),
@@ -882,11 +867,11 @@ namespace wm {
   void update_bar_visibility()
   {
     if (show_bar()) {
-      for (auto& win : bar_list) {
+      for (auto& win : _bar_list) {
         xcb::map_window(win);
       }
     } else {
-      for (auto& win : bar_list) {
+      for (auto& win : _bar_list) {
         xcb::unmap_window(win);
       }
     }
@@ -1294,8 +1279,7 @@ namespace wm {
     }
   }
 
-  /// Received client message. Either ewmh/icccm thing or
-  /// message from the client.
+  /// Received client message. ewmh/icccm thing
   void event_client_message(xcb_generic_event_t* ev)
   {
     auto* e = (xcb_client_message_event_t*) ev;
@@ -1303,21 +1287,12 @@ namespace wm {
     uint32_t* data;
     Client* client;
 
-    if (e->type == xcb::ATOMS[xcb::_IPC_ATOM_COMMAND] && e->format == 32) {
-      /* Message from the client */
-      data        = e->data.data32;
-      ipc_command = data[0];
-      ipc::call_handler(static_cast<ipc::Command>(ipc_command), data + 1);
-      DMSG("IPC Command %u with arguments %u %u %u\n", data[1], data[2],
-           data[3], data[4]);
-    } else {
-      client = find_client(e->window);
-      if (client == nullptr) {
-        return;
-      }
-      xcb::handle_client_message(*client, e);
-      wm::refresh_maxed(*client);
+    client = find_client(e->window);
+    if (client == nullptr) {
+      return;
     }
+    xcb::handle_client_message(*client, e);
+    wm::refresh_maxed(*client);
   }
 
   void event_focus_in(xcb_generic_event_t* ev)
@@ -1692,6 +1667,33 @@ namespace wm {
       wait(nullptr);
     }
   }
+
+  /// Wait for events and handle them.
+  void run()
+  {
+    halt         = false;
+    should_close = false;
+    exit_code    = EXIT_SUCCESS;
+    while (!halt) {
+      xcb::flush();
+      auto ev = xcb::wait_for_event();
+      std::unique_lock lock (global_lock);
+      if (should_close) {
+        if (std::none_of(std::begin(_workspaces), std::end(_workspaces),
+                         [](auto& ws) { return ws.windows.size() > 0; })) {
+          halt = true;
+        }
+      }
+      if (ev != nullptr) {
+        DMSG("X Event %d\n", ev->response_type & ~0x80);
+        if (events[EVENT_MASK(ev->response_type)] != nullptr) {
+          (events[EVENT_MASK(ev->response_type)])(ev.get());
+        }
+      }
+    }
+  }
+
+ 
 } // namespace wm
 
 using namespace wm;
@@ -1732,7 +1734,11 @@ int main(int argc, char* argv[])
 
   /* execute config file */
   load_config(config_path);
+  auto ipc_thread = std::thread{ipc::run};
   run();
+
+  ipc::exit();
+  ipc_thread.join();
 
   free(config_path);
 

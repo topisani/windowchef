@@ -22,11 +22,10 @@ namespace xcb {
   constexpr const unsigned last_xcb_event = XCB_GET_MODIFIER_MAPPING;
 
   /* atoms identifiers */
-  enum { WM_DELETE_WINDOW, _IPC_ATOM_COMMAND, NR_ATOMS };
+  enum { WM_DELETE_WINDOW, NR_ATOMS };
 
   constexpr const char* atom_names[NR_ATOMS] = {
-    "WM_DELETE_WINDOW",
-    ATOM_COMMAND,
+    "WM_DELETE_WINDOW"
   };
 
   extern xcb_atom_t ATOMS[NR_ATOMS];

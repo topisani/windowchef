@@ -5,7 +5,7 @@ NAME_DEFINES = -D__NAME__=\"$(__NAME__)\"                 \
 			   -D__THIS_VERSION__=\"$(__THIS_VERSION__)\" \
 			   -D__CONFIG_NAME__=\"$(__CONFIG_NAME__)\"   \
 
-SRC = src/wm.cpp src/client.cpp src/ipc.cpp src/xcb.cpp
+SRC = src/wm.cpp src/client.cpp src/common.cpp src/xcb.cpp src/ipc/server.cpp
 OBJ = $(SRC:.cpp=.o)
 BIN = $(__NAME__) $(__NAME_CLIENT__)
 CXXFLAGS += $(NAME_DEFINES)
@@ -16,11 +16,11 @@ all: $(BIN)
 debug: CXXFLAGS += -O0 -g -DD
 debug: $(__NAME__) $(__NAME_CLIENT__)
 
-$(__NAME__): src/wm.o src/ipc.o src/xcb.o
+$(__NAME__): src/wm.o src/ipc.o src/xcb.o src/ipc/server.o src/common.o
 	@echo $@
 	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(__NAME_CLIENT__): src/client.o
+$(__NAME_CLIENT__): src/client.o src/common.o
 	@echo $@
 	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
@@ -32,7 +32,7 @@ $(__NAME_CLIENT__): src/client.o
 	@echo $@
 	@$(CXX) -x c++ -o $@ -c $(CXXFLAGS) $<
 
-$(OBJ): src/common.hpp src/ipc.hpp src/types.hpp src/config.hpp
+$(OBJ): src/common.hpp src/client.hpp src/config.hpp src/wm.hpp src/util.hpp src/types.hpp src/xcb.hpp src/ipc/commands.hpp src/ipc/handlers.hpp src/ipc/parsers.hpp src/ipc/server.hpp
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"

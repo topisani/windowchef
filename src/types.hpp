@@ -46,6 +46,8 @@ enum struct Buttons { //
   Left,
   Middle,
   Right,
+  None,
+  Any,
   Count
 };
 

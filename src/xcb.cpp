@@ -738,6 +738,7 @@ namespace xcb {
         if (atom == ewmh->_NET_WM_WINDOW_TYPE_COMBO) type = WindowType::Combo;
         if (atom == ewmh->_NET_WM_WINDOW_TYPE_DND) type = WindowType::Dnd;
         if (atom == ewmh->_NET_WM_WINDOW_TYPE_NORMAL) type = WindowType::Normal;
+        if (type != WindowType::Normal) break;
       }
     } else {
       if (require_type) {

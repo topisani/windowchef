@@ -26,3 +26,9 @@
 #endif
 
 #define MAXLEN 256
+
+#include <string>
+#include <unistd.h>
+
+std::string request_fifo_name();
+std::string response_fifo_name(__pid_t pid = getpid());
