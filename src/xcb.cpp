@@ -3,7 +3,6 @@
 #include <array>
 
 #include "common.hpp"
-#include "ipc.hpp"
 #include "wm.hpp"
 
 #include <X11/keysym.h>

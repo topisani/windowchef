@@ -15,7 +15,7 @@ namespace ipc {
   template<>
   auto parse<unsigned>(std::string const& str) -> unsigned
   {
-    return std::stoi(str, nullptr, 0);
+    return std::stoul(str, nullptr, 0);
   }
 
   template<>
@@ -53,6 +53,7 @@ namespace ipc {
     if (str == "wm_quit")                return ipc::Command::WMQuit;
     if (str == "wm_config")              return ipc::Command::WMConfig;
     if (str == "win_config")             return ipc::Command::WindowConfig;
+    if (str == "get_focused")            return ipc::Command::GetFocused;
     throw std::runtime_error(str_join("No command matches '", str, "'"));
   }
 
@@ -169,4 +170,18 @@ namespace ipc {
                "top|right|all)"));
   }
 
+
+
+  // To String //
+
+
+  auto to_string(std::string&& str) noexcept
+  {
+    return str;
+  }
+
+  auto to_string(std::string const& str) noexcept
+  {
+    return str;
+  }
 } // namespace ipc

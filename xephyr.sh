@@ -13,12 +13,12 @@ Xephyr -screen 1280x720 :$D &
 sleep 1
 
 export DISPLAY=:$D
+export PATH="$PWD:$PATH"
+
 cp examples/sxhkdrc sxhkdrc
-cp examples/windowchefrc windowchefrc
-sed -i 's/waitron/.\/waitron/g' sxhkdrc windowchefrc
-sxhkd -c sxhkdrc &
-if [[ "$1" == "wait" ]]; then
-    exec xwait
+if [[ $# != 0 ]]; then
+    exec "$@"
 else
+    sxhkd -c sxhkdrc &
     ./windowchef -c windowchefrc
 fi

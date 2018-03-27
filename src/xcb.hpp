@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "types.hpp"
-#include "ipc.hpp"
 
 #define EVENT_MASK(ev) (((ev) & ~0x80))
 

@@ -34,6 +34,7 @@ namespace ipc {
     WMQuit,
     WMConfig,
     WindowConfig,
+    GetFocused,
     Number
   };
 

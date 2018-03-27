@@ -16,7 +16,7 @@ all: $(BIN)
 debug: CXXFLAGS += -O0 -g -DD
 debug: $(__NAME__) $(__NAME_CLIENT__)
 
-$(__NAME__): src/wm.o src/ipc.o src/xcb.o src/ipc/server.o src/common.o
+$(__NAME__): src/wm.o src/xcb.o src/ipc/server.o src/common.o
 	@echo $@
 	@$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 

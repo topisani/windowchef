@@ -436,5 +436,12 @@ namespace ipc {
     }
   }
 
+  std::string handler(For<Command::GetFocused>, Args args)
+  {
+    auto focused = wm::focused_client();
+    if (focused == nullptr) return "";
+    return std::to_string(focused->window);
+  }
+
 } // namespace ipc
 
